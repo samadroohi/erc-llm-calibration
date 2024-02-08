@@ -15,6 +15,8 @@ import re
 from datasets import Dataset, DatasetDict, load_from_disk, load_dataset
 import requests
 import templates
+from utils import *
+
 
 #%%
 
@@ -87,25 +89,32 @@ def prepare_prompt(input_df, dataset_name):
     return input_df
     
 #%%
-def extract_values(output):
-    # Use regular expression to extract JSON-like part from the string
-    data_str = output.split('Output:')[2]
-    match = re.search(r'\{.*?\}', data_str, re.DOTALL)
-    if match:
-        json_str = match.group(0)
-        try:
-            # Parse the JSON string
-            data = json.loads(json_str)
-            # Extract 'emotion' and 'confidence' values
-            emotion = data.get('emotion', None)
-            confidence = data.get('confidence', None)
-            return emotion, confidence
-        except json.JSONDecodeError as e:
-            print("Error parsing JSON:", e)
-            return None, None
+#This method is used for extracting emotion and confidence from the model output
+def extract_values(output_str):
+    pattern = r"\{.*?\}"
+
+# Find all JSON strings in the text
+    json_strings = re.findall(pattern, output_str, re.DOTALL)
+
+    # Check the number of found JSON strings
+    if len(json_strings) >= 3:
+        # Parse the third JSON string
+        third_json_obj = json.loads(json_strings[2])
+
+        # Extract 'emotion' and 'confidence' values
+        emotion = third_json_obj.get('emotion')
+        index = third_json_obj.get('index')
+        confidence = third_json_obj.get('confidence')
+
+        #print(f"Emotion: {emotion}, Index:{index} Confidence: {confidence}")
     else:
-        print("No JSON found in the string")
-        return None, None
+        emotion = None
+        confidence = None
+        index = None
+        #log error
+        print(f"Expected at least 3 JSON objects, but found {len(json_strings)}.")
+    return (emotion,index, confidence)
+
 def model_settings(model_name):
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
@@ -139,9 +148,9 @@ def save_split_to_dataset(split_name, split_df, dataset_dir):
     #Return a message
     return f"Saved {split_name} to {dataset_dir}"
 #%%
-def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name):
+def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag):
 
-    outputs = {'context':[], 'query':[], 'emotion':[], 'prompt_for_finetune':[], 'prediction':[],'confidence':[]}
+    outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[], 'prediction_emotion':[], 'prediction_index':[],'confidence':[]}
     prompts_dataset = prepare_prompt(proccessed_data, dataset_name)
     for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
         if mode == "confidence-elicitation":
@@ -149,6 +158,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
                         return_tensors="pt").to(device)
             outputs_zero = model.generate(**inputs_zero, max_new_tokens=300, temperature=0.01)
             response = tokenizer.decode(outputs_zero[0], skip_special_tokens=False)
+            #print(f"output sequence: {response}")
             output = extract_values(response)
             #print(f"output sequence: {output}")
         elif mode == "logit-based":
@@ -156,7 +166,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             #output = lg_ue.forward([prompt_zero])
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
-            outputs=model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True,max_new_tokens=200)
+            outputs=model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True,max_new_tokens=250)
             transition_scores = model.compute_transition_scores(outputs.sequences, outputs.scores, normalize_logits=True)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             print(f"output sequence: {tokenizer.decode(outputs.sequences[0])}")
@@ -168,28 +178,32 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             torch.cuda.empty_cache()
         outputs['context'].append(prompts_dataset['context'][i])
         outputs['query'].append(prompts_dataset['query'][i])
-        outputs['emotion'].append(prompts_dataset['emotion'][i])
+        outputs['ground_truth'].append(prompts_dataset['emotion'][i])
         outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
-        outputs['prediction'].append(output[0]-1)
-        outputs['confidence'].append(output[1])
-        if i %1000 == 0 :
+        outputs['prediction_emotion'].append(output[0])
+        outputs['prediction_index'].append(output[1]-1)
+        outputs['confidence'].append(output[2])
+        if i == 20:
             print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC")
-            send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC")
-    return outputs
+            send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+            return outputs
             
 #%%    
-def send_slack_notification(message):
-    print(message + '\n')
-    webhook_url = 'https://hooks.slack.com/services/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'  # Replace with your Webhook URL
-    slack_data = {'text': message}
+def send_slack_notification(message, error_flag):
+    if error_flag:
+        print(message + '\n')
+        webhook_url = 'https://hooks.slack.com/services/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'  # Replace with your Webhook URL
+        slack_data = {'text': message}
 
-    response = requests.post(
-        webhook_url, json=slack_data,
-        headers={'Content-Type': 'application/json'}
-    )
+        response = requests.post(
+            webhook_url, json=slack_data,
+            headers={'Content-Type': 'application/json'}
+        )
 
-    if response.status_code != 200:
-        raise ValueError(f"Request to slack returned an error {response.status_code}, the response is:\n{response.text}")
+        if response.status_code != 200:
+            raise ValueError(f"Request to slack returned an error {response.status_code}, the response is:\n{response.text}")
+    else:
+        print(message + '\n')
 #%%
 def merge_datasets(data_path):
     merged_dataset = DatasetDict()
@@ -203,9 +217,10 @@ def prepare_data(dataset_name, context_length):
     if dataset_name =='meld':
         datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
         datasets_df = load_ds(datapath)
-        emotion_labels = datasets_df['train']['Emotion'].unique().tolist()
-        emotion2idx = {v:k for k,v in enumerate (emotion_labels)}
+        emotion2idx= {'neutral': 0,'surprise': 1, 'fear': 2, 'sadness': 3, 'joy': 4, 'disgust': 5, 'anger': 6}
+        emotion_labels = emotion2idx.keys()
         idx2emotion = {k:v for k,v in enumerate (emotion_labels)}
+        
         ds_grouped_dialogues = group_dialogues(datasets_df)
         proccessed_data = {}
         proccessed_data['train'] = extract_context_meld(ds_grouped_dialogues['train'],context_length, emotion2idx)
@@ -233,67 +248,87 @@ def prepare_data(dataset_name, context_length):
 
 #%%
 #Main
-def main():
+#def main():
+error_flag = False
+gc.collect()
+torch.cuda.empty_cache()
+_ = load_dotenv(find_dotenv())
+datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
+model_name = "meta-llama/Llama-2-13b-chat-hf"
+model, tokenizer = model_settings(model_name)#,device_map
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+for dataset_name in datasets:
+    send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
+    context_length = 2 # the maximum number of utterances to be considered for the context
 
-    gc.collect()
-    torch.cuda.empty_cache()
-    _ = load_dotenv(find_dotenv())
-    datasets = ['meld', 'emowoz','dailydialog']
-    model_name = "meta-llama/Llama-2-13b-chat-hf"
-    model, tokenizer = model_settings(model_name)#,device_map
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    for dataset_name in datasets:
-        send_slack_notification( f"The progam started for dataset: {dataset_name}")
-        context_length = 2 # the maximum number of utterances to be considered for the context
-        #%%
-        #Load model
-        #num_layers = 40 #for llama-2-7b-chat-hf, 40 for llama-2-13b-hf
-        # device_map = {
-        #     "model.embed_tokens": 0,
-        #     "model.norm": 1,
-        #     "lm_head": 1,
-        # } | {
-        #     f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
-        # }
-        proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length)
-        #%%
-        new_datapath = f'data/ed_verbalized_uncertainty_{dataset_name}'
-        response = None
-        splits = ['train', 'validation', 'test']
-        modes = ["confidence-elicitation", "logit-based"]
-        mode = modes[0]
-        try:
-            for split in splits: 
-                outputs = generate_responses(proccessed_data[split],split,model,tokenizer, device, mode, dataset_name)
-                new_df = pd.DataFrame(outputs)
-                ds_path = f"{new_datapath}/{split}"
-                save_split_to_dataset(split, new_df, ds_path)
-                send_slack_notification( f"Uncertainty verbalization completed for split {dataset_name}:{split}")
-            message= merge_datasets(new_datapath)
-            send_slack_notification(f"Uncertainty verbalization completed successfully: {message}")
-        except Exception as e:
-            send_slack_notification(f"UERC failed with error: {e}")  
+    #Load model
+    #num_layers = 40 #for llama-2-7b-chat-hf, 40 for llama-2-13b-hf
+    # device_map = {
+    #     "model.embed_tokens": 0,
+    #     "model.norm": 1,
+    #     "lm_head": 1,
+    # } | {
+    #     f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
+    # }
+    proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length)
+    new_datapath = f'data/ed_verbalized_uncertainty_{dataset_name}'
+    #print(proccessed_data['train'].head(1))
+    response = None
+    splits = ['train', 'validation', 'test']
+    modes = ["confidence-elicitation", "logit-based"]
+    mode = modes[0]
+    try:
+        for split in splits:
+            print(f"************Started {split} for dataset {dataset_name}**********") 
+            outputs = generate_responses(proccessed_data[split],split,model,tokenizer, device, mode, dataset_name, error_flag)
+            new_df = pd.DataFrame(outputs)
+            ds_path = f"{new_datapath}/{split}"
+            save_split_to_dataset(split, new_df, ds_path)
+            send_slack_notification( f"Uncertainty verbalization completed for split {dataset_name}:{split}", error_flag)
+        message= merge_datasets(new_datapath)
+        send_slack_notification(f"Uncertainty verbalization completed successfully: {message}", error_flag)
+    except Exception as e:
+        send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 
 #%%
-if __name__=="__main__":
-    main()
-    print("Finished successfully!")
+# if __name__=="__main__":
+#     main()
+#     print("Finished successfully!")
 
 #%%
 
 # ds = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
 # print(ds)
 # # %%
-# ds1 = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
-# ds2 = load_from_disk("data/ed_verbalized_uncertainty_emowoz_all_splits")
-# ds3 = load_from_disk("data/ed_verbalized_uncertainty_dailydialog_all_splits")
+ds1 = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
+#ds2 = load_from_disk("data/ed_verbalized_uncertainty_emowoz_all_splits")
+#ds3 = load_from_disk("data/ed_verbalized_uncertainty_dailydialog_all_splits")
 # # %%
-# print(ds1['train'][1])
-# print(ds2['train'][1])
-# print(ds3['train'][1])
+ind = 21
+print("predictions_emotion:", ds1['train']['prediction_emotion'][:ind],
+      " predictions_index:",ds1['train']['prediction_index'][:ind],
+        "ground_truth:", ds1['train']['ground_truth'][:ind], 
+        " confidence:", ds1['train']['confidence'][:ind], 
+      " query", ds1['train']['query'][:ind])
+print("predictions_emotion:", ds1['validation']['prediction_emotion'][:ind],
+      " predictions_index:",ds1['validation']['prediction_index'][:ind],
+        "ground_truth:", ds1['validation']['ground_truth'][:ind], 
+        " confidence:", ds1['validation']['confidence'][:ind], 
+      " query", ds1['validation']['query'][:ind])
+print("predictions_emotion:", ds1['test']['prediction_emotion'][:ind],
+        " predictions_index:",ds1['test']['prediction_index'][:ind],
+            "ground_truth:", ds1['test']['ground_truth'][:ind], 
+            " confidence:", ds1['test']['confidence'][:ind], 
+        " query", ds1['test']['query'][:ind])
+
+#print(ds2['train'][1])
+#print(ds3['train'][1])
 
     #%%
-#show the whole dataframe 
 
 
 # %%
+emotion2idx
+
+# %%
+

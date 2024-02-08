@@ -1,0 +1,36 @@
+{
+  "citation": "",
+  "description": "",
+  "features": {
+    "context": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "query": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "ground_truth": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "prompt_for_finetune": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "prediction_emotion": {
+      "dtype": "string",
+      "_type": "Value"
+    },
+    "prediction_index": {
+      "dtype": "int64",
+      "_type": "Value"
+    },
+    "confidence": {
+      "dtype": "int64",
+      "_type": "Value"
+    }
+  },
+  "homepage": "",
+  "license": ""
+}
