@@ -11,7 +11,7 @@
       "_type": "Value"
     },
     "ground_truth": {
-      "dtype": "int64",
+      "dtype": "string",
       "_type": "Value"
     },
     "prompt_for_finetune": {
@@ -20,10 +20,6 @@
     },
     "prediction_emotion": {
       "dtype": "string",
-      "_type": "Value"
-    },
-    "prediction_index": {
-      "dtype": "int64",
       "_type": "Value"
     },
     "confidence": {
