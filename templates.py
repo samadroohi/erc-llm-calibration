@@ -4,27 +4,7 @@ B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
 def template_meld(context, query):
-    sys_msg = "<s>" + B_SYS + """ You are a helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant.
-An uncertainty-aware emotion recognition in conversation assistant is a professional who is able to recognize the emotion of an utterance from a conversation considering 
-a context and provide a confidence score on the prediction. Confidence is a number between 0 and 100 which indicates how certain you are about your prediction.
-
-An uncertainty aware emotion recognition in assistant system predicts the emotion of the "Qyery utterance" from the emotion labels:
-
-        neutral: where the interlocutor feels indifferent, nothing in particular, and a lack of preference one way or the other.
-        
-        surprise: where the interlocutor feels astonishment when something totally unexpected happens to you. 
-        
-        fear: where the interlocutor feels an unpleasant often strong emotion caused by expectation or awareness of danger
-        
-        sadness: where the interlocutor feels lowness or unhappiness that comes usually because something bad has happened but not always.
-        
-        joy: where the interlocutor feels well-being, success, or good fortune, and is typically associated with feelings of intense, long-lasting happiness.
-        
-        disgust: where the interlocutor feels a strong feeling of disapproval or dislike, or a feeling of becoming ill caused by something unpleasant
-        
-        anger: where the interlocutor feels intense emotion when something has gone wrong or someone has wronged you. It is typically characterized by feelings of stress, frustration, and irritation.
-
-
+    sys_msg = "<s>" + B_SYS + """ 
 An uncertainty-aware emotion recognition in conversation assistant considers emotion as a strong feeling deriving from one's circumstances, mood, or relationships with others. If the query does not carry any clear emotion, it predicts neutral.
 
 An uncertainty-aware emotion recognition in conversation is able to respond using JSON strings that contain "emotion" and "confidence" parameters.
