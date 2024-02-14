@@ -73,7 +73,7 @@ def extract_answer(batch):
 
         
         
-def prepare_prompt(input_df, dataset_name):
+def prepare_prompt(input_df, dataset_name ,idx2emotion):
     
     prompts = list()
     if dataset_name == 'emowoz':
@@ -83,7 +83,7 @@ def prepare_prompt(input_df, dataset_name):
     elif dataset_name == 'dailydialog':
         template = templates.template_dailydialog
     for i in range (len(input_df['context'])):
-        prompt = template(context=input_df['context'][i], query=input_df['query'][i]) 
+        prompt = template(context=input_df['context'][i], query=input_df['query'][i], emotion_label = idx2emotion[input_df['emotion'][i]]) 
         prompts.append(prompt)
     input_df['prompt_for_finetune'] = prompts
 
@@ -150,12 +150,12 @@ def save_split_to_dataset(split_name, split_df, dataset_dir):
 def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, idx2emotion):
 
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[], 'prediction_emotion':[],'confidence':[]}
-    prompts_dataset = prepare_prompt(proccessed_data, dataset_name)
+    prompts_dataset = prepare_prompt(proccessed_data, dataset_name, idx2emotion)
     for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
         if mode == "confidence-elicitation":
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
-            outputs_zero = model.generate(**inputs_zero, max_new_tokens=300, temperature=0.01)
+            outputs_zero = model.generate(**inputs_zero, max_new_tokens=300, temperature=0.001)
             response = tokenizer.decode(outputs_zero[0], skip_special_tokens=False)
             #print(f"output sequence: {response}")
             output = extract_values(response)
@@ -175,6 +175,13 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
                 print(f"| {tok:5d} | {tokenizer.decode(tok):8s} | {score.numpy(force=True):.4f} | {np.exp(score.numpy(force=True)):.2%}")
             output = extract_answer(outputs)
             torch.cuda.empty_cache()
+        elif mode == "p_true":
+            inputs_zero = tokenizer(llm_prompt,
+                        return_tensors="pt").to(device)
+            outputs_zero = model.generate(**inputs_zero, max_new_tokens=1, temperature=0.001)
+            response = tokenizer.decode(outputs_zero[0], skip_special_tokens=False)
+            print(f"output sequence: {response}")
+
         outputs['context'].append(prompts_dataset['context'][i])
         outputs['query'].append(prompts_dataset['query'][i])
         outputs['ground_truth'].append(idx2emotion[prompts_dataset['emotion'][i]+1])
@@ -253,7 +260,7 @@ def main():
     gc.collect()
     torch.cuda.empty_cache()
     _ = load_dotenv(find_dotenv())
-    datasets = ['emowoz'] #Add 'emowoz' and 'dailydialog' to the list
+    datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
     model_name = "meta-llama/Llama-2-13b-chat-hf"
     model, tokenizer = model_settings(model_name)#,device_map
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -271,12 +278,12 @@ def main():
         #     f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
         # }
         proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length)
-        new_datapath = f'data/ed_verbalized_uncertainty_{dataset_name}'
+        new_datapath = f'data/ed_P(True)_uncertainty_{dataset_name}'
         #print(proccessed_data['train'].head(1))
         response = None
         splits = ['train', 'validation', 'test']
-        modes = ["confidence-elicitation", "logit-based"]
-        mode = modes[0]
+        modes = ["confidence-elicitation", "logit-based", "p_true"]
+        mode = modes[2]
         try:
             for split in splits:
                 print(f"************Started {split} for dataset {dataset_name}**********") 
@@ -285,9 +292,9 @@ def main():
                 new_df = pd.DataFrame(outputs)
                 ds_path = f"{new_datapath}/{split}"
                 save_split_to_dataset(split, new_df, ds_path)
-                send_slack_notification( f"Uncertainty verbalization completed for split {dataset_name}:{split}", error_flag)
+                send_slack_notification( f"Uncertainty P(True) completed for split {dataset_name}:{split}", error_flag)
             message= merge_datasets(new_datapath)
-            send_slack_notification(f"Uncertainty verbalization completed successfully: {message}", error_flag)
+            send_slack_notification(f"Uncertainty P(True) completed successfully: {message}", error_flag)
         except Exception as e:
             send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 

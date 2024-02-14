@@ -1,59 +1,77 @@
-from langchain import PromptTemplate
-
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld(context, query):
-    sys_msg = "<s>" + B_SYS + """ 
-An uncertainty-aware emotion recognition in conversation assistant considers emotion as a strong feeling deriving from one's circumstances, mood, or relationships with others. If the query does not carry any clear emotion, it predicts neutral.
+def template_meld(context, query, emotion_label):
+    prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
+    Always you consider the \"\"\"Context\"\"\" of a conversation and predict that if the proposed emotional state for a given '''Query utterance''' 
+    is (A) True or (B) False.  Emotional state is a strong feeling deriving from one's circumstances, mood, or relationships 
+    with others. The proposed emotional state is always one of the following emotion labels:
 
-An uncertainty-aware emotion recognition in conversation is able to respond using JSON strings that contain "emotion" and "confidence" parameters.
+        neutral: where the conversation does not carry any emotional feeling and the interlocutor of the '''Query utterance''' feels indifferent, nothing in particular, and a lack of preference one way or the other.
+        
+        surprise: where the interlocutor of the '''Query utterance''' feels astonishment when something totally unexpected happens to you. 
+        
+        fear: where the interlocutor of the '''Query utterance''' feels an unpleasant often strong emotion caused by expectation or awareness of danger
+        
+        sadness: where the interlocutor of the '''Query utterance''' feels lowness or unhappiness that comes usually because something bad has happened but not always.
+        
+        joy: where the interlocutor of the '''Query utterance''' feels well-being, success, or good fortune, and is typically associated with feelings of intense, long-lasting happiness.
+        
+        disgust: where the interlocutor of the '''Query utterance''' feels a strong feeling of disapproval or dislike, or a feeling of becoming ill caused by something unpleasant
+        
+        anger: where the interlocutor of the '''Query utterance''' feels intense emotion when something has gone wrong or someone has wronged you. It is typically characterized by feelings of stress, frustration, and irritation.
 
-Here are some examples of how an uncertainty-aware emotion recognition in conversation assistant should work:
 
-Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+Here are some examples of how an emotion recognition in conversation assistant should work:
 
-Query utterance: [Chandler]: That I did. That I did. 
+---Input:
+    Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+            [The Interviewer]: You mustve had your hands full. [neutral]
+    Query utterance: [Chandler]: That I did. That I did. 
 
-Reasoning on the "Context" and "Query utterance", uncertainty-aware emotion recognition in conversation assistant recognize the emotion state of the "Query" interlecuter as: 
+    The proposed emotional label is: neutral
 
-'''{{
-    "emotion": "neutral",
-    "confidence": 85
-}}
-'''
+    Is the proposed emoiotnal label:
+    (A) True 
+    (B) False
 
-Context: [Monica]: You never knew she was a lesbian? [surprise]
-[Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+---Output:
+    The proposed answer is: A
 
-Query utterance: [Monica]: I am sorry
+Here is another example of how an emotion recognition in conversation assistant should work:
 
-Reasoning on the "Context" and "Query utterance", uncertainty-aware emotion recognition in conversation assistant recognize the emotion state of the "Query" interlecuter as: 
+---Input:
+    Context: [Monica]: You never knew she was a lesbian? [surprise]
+    [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    Query utterance: [Monica]: I am sorry
 
-'''{{
-    "emotion": "sadness",
-    "confidence": 90
-}}
-'''
+    The proposed emotional label is: joy
 
-Here is a new conversation""" + E_SYS
+    Is the proposed emoiotnal label:
+    (A) True 
+    (B) False
 
-    instruction = B_INST + """Given the following context:
+    ---Output:
+        The proposed answer is: B
 
-Context: {context}
+""" + E_SYS+ f""" Here is a new conversation:
 
-What is the emotion label of the following query utterance?
+    ---Input:
+        Context: {context}
+        Query utterance: {query} 
 
-Query utterance: {utterance} 
+    The proposed emotional label is: {emotion_label}
 
-Remember that you are an uncertainty-aware emotion recognition in conversation and you choose the best emotion label that fits the query utterance among emotion labels: neutral, surprise, fear, sadness, joy, disgust, anger.
-You should provide your prediction as "emotion" and your confidence as "confidence" values using a JSON string. If the "Query utterance" does not carry any clear emotion, the assistant predicts "neutral".
+    Is the proposed emoiotnal label:
+    (A) True 
+    (B) False
 
-Reasoning on the "Context" and "Query utterance", uncertainty-aware emotion recognition in conversation assistant recognizes the emotion state of the "Query" interlecuter as: """ + E_INST
-    prompt = PromptTemplate(template=sys_msg + instruction, input_variables=[ "context","utterance"])
-    input = prompt.format(context=context, utterance=query) 
-    return input
+    ---Output:
+        The proposed answer is: B
+ 
+ """ + E_INST
+
+    return prompt
 
 def template_emowoz(context, query):
 
