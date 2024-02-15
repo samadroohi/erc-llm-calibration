@@ -1,11 +1,16 @@
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld(context, query, emotion_label):
-    prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-    Always you consider the \"\"\"Context\"\"\" of a conversation and predict that if the proposed emotional state for a given '''Query utterance''' 
-    is (A) True or (B) False.  Emotional state is a strong feeling deriving from one's circumstances, mood, or relationships 
-    with others. The proposed emotional state is always one of the following emotion labels:
+def template_meld(context, query, mode,emotion_label = None):
+    if mode == "P(True)":
+
+        prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
+    Always you reaon on the \"\"\"Context\"\"\" of a conversation and recognize that wherther the proposed emotional state for a given '''Query utterance''' 
+    is A where the proposed label matches the emotional state of the "Query utterance" or B where the proposed label does not match the emotional state of the "Query utterance". 
+    
+    The output is either the character A or B without any extra explanation on reasoning.
+
+    The proposed emotional state is always one of the following emotion labels:
 
         neutral: where the conversation does not carry any emotional feeling and the interlocutor of the '''Query utterance''' feels indifferent, nothing in particular, and a lack of preference one way or the other.
         
@@ -22,22 +27,23 @@ def template_meld(context, query, emotion_label):
         anger: where the interlocutor of the '''Query utterance''' feels intense emotion when something has gone wrong or someone has wronged you. It is typically characterized by feelings of stress, frustration, and irritation.
 
 
-Here are some examples of how an emotion recognition in conversation assistant should work:
+Here's an example of how an emotion recognition assistant for conversation analysis should function:
 
 ---Input:
     Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
             [The Interviewer]: You mustve had your hands full. [neutral]
     Query utterance: [Chandler]: That I did. That I did. 
 
-    The proposed emotional label is: neutral
+The proposed emotional label for th "Query utterance" is: neutral
 
-    Is the proposed emoiotnal label:
-    (A) True 
-    (B) False
+Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is 'neutral' the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+    A: Yes
+    B: No
 
 ---Output:
-    The proposed answer is: A
+    The correct answer is: A
 
+    
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 ---Input:
@@ -45,14 +51,12 @@ Here is another example of how an emotion recognition in conversation assistant 
     [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
     Query utterance: [Monica]: I am sorry
 
-    The proposed emotional label is: joy
+Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is 'joy' the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+    A: Yes
+    B: No
 
-    Is the proposed emoiotnal label:
-    (A) True 
-    (B) False
-
-    ---Output:
-        The proposed answer is: B
+---Output:
+    The correct answer is: B
 
 """ + E_SYS+ f""" Here is a new conversation:
 
@@ -60,16 +64,17 @@ Here is another example of how an emotion recognition in conversation assistant 
         Context: {context}
         Query utterance: {query} 
 
-    The proposed emotional label is: {emotion_label}
 
-    Is the proposed emoiotnal label:
-    (A) True 
-    (B) False
+Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is {emotion_label} the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+    A: Yes
+    B: No
 
     ---Output:
-        The proposed answer is: B
+        The answer is:
  
- """ + E_INST
+ """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, the most accurate answer is:"
+    else: #Add other shape of assessment
+        prompt= None
 
     return prompt
 
