@@ -291,12 +291,12 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             outputs['prediction_truthfulness'].append(label_probs_model[0])
             outputs['ptrue-transition_probs'].append(label_probs_transition[1])
             outputs['ptrue-model_probs'].append(label_probs_model[1])
-            if i % 1 == 0:
+            if i % 3 == 2:
                 print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
                 send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i],  "emotion_inserted:", outputs["emotion_inserted"][i], ", prediction_truthfulness: ", 
                       outputs['prediction_truthfulness'][i], "   , ptrue-transition_probs:",  outputs['ptrue-transition_probs'][i],', ptrue-model_probs:',outputs['ptrue-model_probs'][i] )
-    return outputs
+                return outputs
             
 #%%    
 def send_slack_notification(message, error_flag):
@@ -410,7 +410,7 @@ for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
     context_length = 2 # the maximum number of utterances to be considered for the context
     proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, assess_type)
-    new_datapath = f'data/ed_{mode}_{assess_types}_uncertainty_{dataset_name}'
+    new_datapath = f'data/ed_{mode}_{assess_type}_uncertainty_{dataset_name}'
     #print(proccessed_data['train'].head(1))
     response = None
     splits = ['train', 'validation', 'test']
@@ -446,6 +446,7 @@ for dataset_name in datasets:
 
     #%%
 
+ds = load_from_disk("/home/samad/Projects/llama2-uerc-master/data/ed_verbalized_uncertainty_meld")
 
-
+print(ds['train'])
 # %%
