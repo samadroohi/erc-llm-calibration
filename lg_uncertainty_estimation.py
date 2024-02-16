@@ -203,9 +203,8 @@ def extract_label_probs(token_logits, target_tokens):
     return (label,label_prob)
 
 #%%
-def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, emotion_tokens, idx2emotion):
-    if mode == "P(True)":
-        idx2emotion = None
+def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, emotion_tokens, idx2emotion, assess_type=None):
+
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
     
     
@@ -265,7 +264,10 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
                       outputs['prediction_emotion_model'][i], "   , confidence_model:",  outputs['confidence_model'][i],', prediction_emotion_transition:',outputs['prediction_emotion_transition'][i]
                         ,', confidence_transition: ', outputs['confidence_transition'][i] )
     elif mode == "P(True)":
-        inserted_emotion = proccessed_data['emotion']
+        if assess_type == "self-assessment":
+            inserted_emotion = proccessed_data['prediction_emotion']
+        elif assess_type == "random-assessment":
+            inserted_emotion = np.random.choice(list(idx2emotion.keys()), len(proccessed_data['context']))
         prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode, inserted_emotion)
         outputs['emotion_inserted']=[]
         outputs['prediction_truthfulness']=[] #A:True B:False
@@ -285,7 +287,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             label_probs_model = extract_label_probs(model_scores, target_tokens)
             outputs['context'].append(prompts_dataset['context'][i])
             outputs['query'].append(prompts_dataset['query'][i])
-            outputs['ground_truth'].append(prompts_dataset['emotion'][i])
+            outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['emotion_inserted'].append(inserted_emotion[i])
             outputs['prediction_truthfulness'].append(label_probs_model[0])
@@ -332,16 +334,21 @@ def prepare_data(dataset_name, context_length, assess_type):
         if assess_type == "self-assessment":
         
             dataset_dict = load_from_disk(f"data/ed_verbalized_uncertainty_{dataset_name}_all_splits")
+            
+            #print(dataset_dict['train'])
+            #for i in range(len(dataset_dict['train'])):
+             #   print(f"ground_truth: {dataset_dict['train']['ground_truth'][i]}, prediction_emotion: {dataset_dict['train']['prediction_emotion'][i]}")
             # Assuming proccessed_data is a dictionary with keys like 'train', 'validation', 'test'
             # and each of these keys maps to a dataset
-            features = ['context', 'query', 'prediction_emotion']
+            features = ['context', 'query','ground_truth', 'prediction_emotion']
+        
             # converd dataset to dataframe and drop the columns that are not in features list and change the title of column 'prediction_emotion' to emotion
             #Then add the dataframe to the proccessed_data dictionary
             proccessed_data = {}
             for split in ['train', 'validation', 'test']:
                 proccessed_data[split] = dataset_dict[split].to_pandas()
                 proccessed_data[split] = proccessed_data[split].drop(columns=[col for col in proccessed_data[split].columns if col not in features])
-                proccessed_data[split].rename(columns={'prediction_emotion': 'emotion'}, inplace=True)
+                #proccessed_data[split].rename(columns={'ground_truth': 'emotion'}, inplace=True)
         elif assess_type == "random-assessment":
             datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
             datasets_df = load_ds(datapath)
@@ -403,7 +410,7 @@ emotion_tokens = ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "a
 modes = ["confidence-elicitation", "logit-based", "P(True)"]
 mode = modes[2]
 
-assess_types = ["self-assessment", "random-assessment"] 
+assess_types = ["self-assessment", "random-assessment", "verbalized-assessment"] # ground-truth, random labels, results from the verbalized prediction
 assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 #%%
 for dataset_name in datasets:
@@ -418,7 +425,7 @@ for dataset_name in datasets:
     try:
         for split in splits:
             print(f"************Started {split} for dataset {dataset_name}**********") 
-            outputs = generate_responses(proccessed_data[split],split,model,tokenizer, device, mode, dataset_name, error_flag, emotion_tokens,idx2emotion)
+            outputs = generate_responses(proccessed_data[split],split,model,tokenizer, device, mode, dataset_name, error_flag, emotion_tokens,idx2emotion, assess_type=assess_type)
             new_df = pd.DataFrame(outputs)
             ds_path = f"{new_datapath}/{split}"
             save_split_to_dataset(split, new_df, ds_path)
