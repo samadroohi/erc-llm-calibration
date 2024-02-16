@@ -85,7 +85,7 @@ def prepare_prompt(input_df, dataset_name ,mode, inserted_emotion=None):
         #print(f"input_df['context'][i]: {input_df['context'][i]}, input_df['query'][i]: {input_df['query'][i]}, input_df['emotion'][i]: {input_df['emotion'][i]}")
         context=input_df['context'][i] 
         query=input_df['query'][i]
-        prompt = template(context, query, mode, emotion_label=inserted_emotion)
+        prompt = template(context, query, mode, emotion_label=inserted_emotion[i])
         prompts.append(prompt)
     input_df['prompt_for_finetune'] = prompts
 
@@ -446,6 +446,6 @@ for dataset_name in datasets:
 
     #%%
 
-ds1 = load_from_disk("data/ed_P(True)_['self-assessment', 'random-assessment']_uncertainty_meld_all_splits")
-ds1['validation'][:]
+ds1 = load_from_disk("/home/samad/Projects/llama2-uerc-master/data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
+ds1['validation'][:1]
 # %%
