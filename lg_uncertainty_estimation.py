@@ -18,7 +18,6 @@ import templates
 from utils import *
 torch.cuda.empty_cache()
 
-
 #%%
 
 class LogitBasedUncertaitnyEstimation():
@@ -73,7 +72,7 @@ def extract_answer(batch):
 
         
         
-def prepare_prompt(input_df, dataset_name):
+def prepare_prompt(input_df, dataset_name ,mode, inserted_emotion=None):
     
     prompts = list()
     if dataset_name == 'emowoz':
@@ -83,7 +82,10 @@ def prepare_prompt(input_df, dataset_name):
     elif dataset_name == 'dailydialog':
         template = templates.template_dailydialog
     for i in range (len(input_df['context'])):
-        prompt = template(context=input_df['context'][i], query=input_df['query'][i]) 
+        #print(f"input_df['context'][i]: {input_df['context'][i]}, input_df['query'][i]: {input_df['query'][i]}, input_df['emotion'][i]: {input_df['emotion'][i]}")
+        context=input_df['context'][i] 
+        query=input_df['query'][i]
+        prompt = template(context, query, mode, emotion_label=inserted_emotion[i])
         prompts.append(prompt)
     input_df['prompt_for_finetune'] = prompts
 
@@ -103,27 +105,43 @@ def extract_values(output_str):
         third_json_obj = json.loads(json_strings[2])
 
         # Extract 'emotion' and 'confidence' values
-        emotion = third_json_obj.get('prediction')
+        emotion = third_json_obj.get('emotion')
+        index = third_json_obj.get('index')
         confidence = third_json_obj.get('confidence')
 
-        #print(f"Emotion: {emotion} Confidence: {confidence}")
+        #print(f"Emotion: {emotion}, Index:{index} Confidence: {confidence}")
     else:
         emotion = None
         confidence = None
+        index = None
         #log error
         print(f"Expected at least 3 JSON objects, but found {len(json_strings)}.")
-    return (emotion, confidence)
+    return (emotion,index, confidence)
 
-def model_settings(model_name):
+def model_settings(model_name, single_gpu): #, device_map
+    if model_name == "meta-llama/Llama-2-13b-chat-hf":
+        num_layers = 40
+    elif model_name == "meta-llama/Llama-2-7b-chat-hf":
+        num_layers = 32
+
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_quant_type="nf4",
         bnb_4bit_compute_dtype=torch.float16,
     )
+    if single_gpu:
+        device_map = {
+                "model.embed_tokens": 0,
+                "model.norm": 1,
+                "lm_head": 1,
+            } | {
+                f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
+            }
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config) #, device_map=device_map
+    else:
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
 
-    model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
     tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code = True )
-    
     model.model.eval()
     tokenizer.pad_token = tokenizer.eos_token
     model.config.pad_token_id = tokenizer.pad_token
@@ -146,46 +164,159 @@ def save_split_to_dataset(split_name, split_df, dataset_dir):
     dataset_dict.save_to_disk(dataset_dir)
     #Return a message
     return f"Saved {split_name} to {dataset_dir}"
-#%%
-def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, idx2emotion):
+def get_transition_scores(inputs_zero,model, tokenizer, outputs_gen, max_new_tokens):
+    token_logits = { "token_string":[], "probability":[]}
+    #print("########Scores for transition########")
+    #print(f"shape of scores is: {scores.shape}")
+    transition_scores = model.compute_transition_scores(outputs_gen.sequences, outputs_gen.scores, normalize_logits=True)    
+    #print(f"shape of transition_scores is: {transition_scores}")
+    input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
+    generated_tokens = outputs_gen.sequences[:, input_length:]
+    #generated text
+    #print(f"Generated text: {tokenizer.decode(generated_tokens[0])}")
+    #print(f"length of generated tokens is: {len(generated_tokens[0])}  and length of transition scores is : {len(transition_scores[0])}")
+  
+    for tok, score in zip(generated_tokens[0][:max_new_tokens], transition_scores[0][:max_new_tokens]):
+        # | token | token string | logits | probability | {np.exp(score.numpy()):.2}%
+        #token_logits["token"].append(tok)
+        token_logits["token_string"].append(tokenizer.decode(tok))
+        #token_logits["logits"].append(score.numpy())
+        token_logits["probability"].append(np.exp(score.numpy()))
+        #print(f"| {tok:5d} | {tokenizer.decode(tok):8s} | {score.numpy():.4f} | {np.exp(score.numpy()):.2}%")
+    return token_logits
+def get_logits_for_generated_output(generated_output, model, tokenizer,input_length, max_new_tokens):
+    #print("########Scores for logits1 ########")
+    # Take the text generated and re-evaluate the probability 
+    token_logits = {"token":[], "token_string":[], "logits":[], "probability":[]}
+    text_generated = tokenizer.batch_decode(generated_output.sequences, skip_special_tokens= True)[0]
+    generated_output_ids = tokenizer(text_generated, return_tensors="pt").input_ids
 
-    outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[], 'prediction_emotion':[],'confidence':[]}
-    prompts_dataset = prepare_prompt(proccessed_data, dataset_name)
-    for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
-        if mode == "confidence-elicitation":
-            inputs_zero = tokenizer(llm_prompt,
+    with torch.no_grad():
+        model_output = model(generated_output_ids)
+    # collect the probability of the generated token -- probability at index 0 corresponds to the token at index 1
+    probs = torch.log_softmax(model_output.logits, dim=-1).detach()
+    probs = probs[:, :-1, :]
+    generated_input_ids_shifted = generated_output_ids[:, 1:]
+    gen_probs = torch.gather(probs, 2, generated_input_ids_shifted[:, :, None]).squeeze(-1)
+    #print(gen_probs[:,:max_new_tokens])
+    for tok, score in zip(generated_input_ids_shifted[0][input_length:input_length+max_new_tokens], gen_probs[0][input_length:input_length+max_new_tokens]):
+        #token_logits["token"].append(tok)
+        token_logits["token_string"].append(tokenizer.decode(tok))
+        #token_logits["logits"].append(score.numpy())
+        token_logits["probability"].append(np.exp(score.numpy()))
+        #print(f"| {tok:5d} | {tokenizer.decode(tok):8s} | {score.numpy():.4f} | {np.exp(score.numpy()):.2%}")
+    return token_logits
+def extract_label_probs(token_logits, target_tokens):
+    label = None
+    label_prob=-1
+    for i, token in enumerate(zip(token_logits["token_string"], token_logits["probability"])):
+        if token[0] in target_tokens:
+            label = token[0]
+            label_prob = token[1]
+
+    return (label,label_prob)
+
+#%%
+def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, emotion_tokens, idx2emotion, assess_type=None):
+
+    outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
+    
+    
+    
+    if mode == 'confidence-elicitation':
+        prompts_dataset = prepare_prompt(proccessed_data, dataset_name, mode)
+        outputs['prediction']= []
+        outputs['confidence'] = []
+        for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
+            inputs_zero = tokenizer(llm_prompt[0],
                         return_tensors="pt").to(device)
             outputs_zero = model.generate(**inputs_zero, max_new_tokens=300, temperature=0.01)
             response = tokenizer.decode(outputs_zero[0], skip_special_tokens=False)
             #print(f"output sequence: {response}")
             output = extract_values(response)
-            #print(f"output sequence: {output}")
-        elif mode == "logit-based":
-            #lg_ue = LogitBasedUncertaitnyEstimation(model, tokenizer, device)
-            #output = lg_ue.forward([prompt_zero])
+            outputs['context'].append(prompts_dataset['context'][i])
+            outputs['query'].append(prompts_dataset['query'][i])
+            outputs['ground_truth'].append(idx2emotion[prompts_dataset['ground_truth'][i]])
+            outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
+            outputs['prediction'].append(output[0])
+            outputs['confidence'].append(output[2])
+            if i % 1000 == 1:
+                print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC , outputs : {outputs}")
+                send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ",  prediction: ", 
+                      outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i] )
+    elif mode == "logit-based":
+        prompts_dataset = prepare_prompt(proccessed_data, dataset_name, mode)
+        outputs['prediction_label']=[]
+        outputs['prediction_emotion_model']=[]
+        outputs['confidence_model']=[]
+        outputs['prediction_emotion_transition']=[]
+        outputs['confidence_transition']=[]
+        for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
-            outputs=model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True,max_new_tokens=250)
-            transition_scores = model.compute_transition_scores(outputs.sequences, outputs.scores, normalize_logits=True)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
-            print(f"output sequence: {tokenizer.decode(outputs.sequences[0])}")
-            generated_tokens = outputs.sequences[:,input_length+1:input_length+2]
-            for tok, score in zip(generated_tokens[0], transition_scores[0]):
-            # | token | token string | logits | probability
-                print(f"| {tok:5d} | {tokenizer.decode(tok):8s} | {score.numpy(force=True):.4f} | {np.exp(score.numpy(force=True)):.2%}")
-            output = extract_answer(outputs)
-            torch.cuda.empty_cache()
-        outputs['context'].append(prompts_dataset['context'][i])
-        outputs['query'].append(prompts_dataset['query'][i])
-        outputs['ground_truth'].append(idx2emotion[prompts_dataset['emotion'][i]+1])
-        outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
-        outputs['prediction_emotion'].append(output[0])
-        outputs['confidence'].append(output[1])
-        #print(f"i:{i}   Query: {outputs['query'][i]} \n Ground Truth: {outputs['ground_truth'][i]} \n Prediction: {outputs['prediction_emotion'][i]} \n Confidence: {outputs['confidence'][i]} \n")
-        if i %1000==1:
-            print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC")
-            print(f"i:{i}   Query: {outputs['query'][i]} \n Ground Truth: {outputs['ground_truth'][i]} \n Prediction: {outputs['prediction_emotion'][i]} \n Confidence: {outputs['confidence'][i]} \n")
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=100)
+            response = tokenizer.decode(outputs_zero.sequences[0], skip_special_tokens=False)
+            #print(f"output sequence: {response}")
+            transition_scores = get_transition_scores(inputs_zero,model, tokenizer ,outputs_zero, 6)
+            model_scores = get_logits_for_generated_output(outputs_zero, model, tokenizer,input_length, 6)
+            label_probs_transition = extract_label_probs(transition_scores, emotion_tokens)
+            label_probs_model = extract_label_probs(model_scores, emotion_tokens)
+            outputs['context'].append(prompts_dataset['context'][i])
+            outputs['query'].append(prompts_dataset['query'][i])
+            outputs['ground_truth'].append(idx2emotion[prompts_dataset['ground_truth'][i]])
+            outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
+            outputs['prediction_emotion_model'].append(label_probs_model[0])
+            outputs['confidence_model'].append(label_probs_model[1])
+            outputs['prediction_emotion_transition'].append(label_probs_transition[0])
+            outputs['confidence_transition'].append(label_probs_transition[1])
+            #if i % 1000 == 1:
+            print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC , outputs : {outputs}")
             send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ",  prediction_emotion_model: ", 
+                      outputs['prediction_emotion_model'][i], "   , confidence_model:",  outputs['confidence_model'][i],', prediction_emotion_transition:',outputs['prediction_emotion_transition'][i]
+                        ,', confidence_transition: ', outputs['confidence_transition'][i] )
+    elif mode == "P(True)":
+        if assess_type == "self-assessment":
+            inserted_emotion = proccessed_data['prediction_emotion']
+        elif assess_type == "random-assessment":
+            inserted_emotion = np.random.choice(list(idx2emotion.values()), len(proccessed_data['context']))
+        prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode, inserted_emotion)
+        outputs['emotion_inserted']=[]
+        outputs['prediction_truthfulness']=[] #A:True B:False
+        outputs['ptrue-transition_probs']=[]
+        outputs['ptrue-model_probs']=[]
+        target_tokens = ['A', 'B']
+        for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
+            inputs_zero = tokenizer(llm_prompt,
+                        return_tensors="pt")
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=200)
+            input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
+            response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
+            
+            transition_scores = get_transition_scores(inputs_zero, model, tokenizer ,outputs_zero, 4)
+            model_scores = get_logits_for_generated_output(outputs_zero, model, tokenizer,input_length, 4)
+            label_probs_transition = extract_label_probs(transition_scores, target_tokens)            
+            label_probs_model = extract_label_probs(model_scores, target_tokens)
+
+            
+
+            outputs['context'].append(prompts_dataset['context'][i])
+            outputs['query'].append(prompts_dataset['query'][i])
+            outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
+            outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
+            outputs['emotion_inserted'].append(inserted_emotion[i])
+            outputs['prediction_truthfulness'].append(label_probs_model[0])
+            outputs['ptrue-transition_probs'].append(label_probs_transition[1])
+            outputs['ptrue-model_probs'].append(label_probs_model[1])
+            if i  % 100 == 1:
+                print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
+                send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+                if label_probs_model[0] == "B":
+                    print(f"\n ******\n output sequence: {response} ")
+                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i],  "emotion_inserted:", outputs["emotion_inserted"][i], ", prediction_truthfulness: ", 
+                    outputs['prediction_truthfulness'][i], "   , ptrue-transition_probs:",  outputs['ptrue-transition_probs'][i],', ptrue-model_probs:',outputs['ptrue-model_probs'][i] )
     return outputs
             
 #%%    
@@ -213,19 +344,25 @@ def merge_datasets(data_path):
     merged_dataset.save_to_disk(f"{data_path}_all_splits")
     return f"Merged all splits into {data_path}"
 
-def prepare_data(dataset_name, context_length):
+def prepare_data(dataset_name, context_length, assess_type):
     if dataset_name =='meld':
-        datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
-        datasets_df = load_ds(datapath)
         emotion2idx= {'neutral': 0,'surprise': 1, 'fear': 2, 'sadness': 3, 'joy': 4, 'disgust': 5, 'anger': 6}
         emotion_labels = emotion2idx.keys()
         idx2emotion = {k:v for k,v in enumerate (emotion_labels)}
-        
-        ds_grouped_dialogues = group_dialogues(datasets_df)
+
+        if assess_type == "self-assessment":
+            features = ['context', 'query','ground_truth', 'prediction_emotion']
+
+        elif assess_type == "random-assessment":
+            features = ['context', 'query','ground_truth']
+        dataset_dict = load_from_disk(f"data/ed_verbalized_uncertainty_{dataset_name}_all_splits")
+       
         proccessed_data = {}
-        proccessed_data['train'] = extract_context_meld(ds_grouped_dialogues['train'],context_length, emotion2idx)
-        proccessed_data['test'] = extract_context_meld(ds_grouped_dialogues['test'],context_length, emotion2idx)
-        proccessed_data['validation'] = extract_context_meld(ds_grouped_dialogues['validation'],context_length,emotion2idx)
+        for split in ['train', 'validation', 'test']:
+            proccessed_data[split] = dataset_dict[split].to_pandas()
+            proccessed_data[split] = proccessed_data[split].drop(columns=[col for col in proccessed_data[split].columns if col not in features])
+
+
     elif dataset_name =='emowoz':
         dataset = load_dataset("hhu-dsml/emowoz", 'emowoz')
         emotion_labels = ["unlabled","neutral", "fearful or sad/disappointed", "dissatisfied" , "apologetic", "abusive", "excited", "satisfied"]
@@ -245,107 +382,81 @@ def prepare_data(dataset_name, context_length):
         proccessed_data['test'] = extract_context_dailydialog(dataset['test'],context_length, idx2emotion)
         proccessed_data['validation'] = extract_context_dailydialog(dataset['validation'],context_length, idx2emotion)
     return proccessed_data, emotion2idx, idx2emotion
+#%%
 
 #%%
 #Main
-def main():
-    error_flag = False
-    gc.collect()
-    torch.cuda.empty_cache()
-    _ = load_dotenv(find_dotenv())
-    datasets = ['emowoz'] #Add 'emowoz' and 'dailydialog' to the list
-    model_name = "meta-llama/Llama-2-13b-chat-hf"
-    model, tokenizer = model_settings(model_name)#,device_map
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    for dataset_name in datasets:
-        send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
-        context_length = 2 # the maximum number of utterances to be considered for the context
+#def main():
+singleGPU = True
+error_flag = False
+gc.collect()
+torch.cuda.empty_cache()
+_ = load_dotenv(find_dotenv())
+datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
+model_name = "meta-llama/Llama-2-13b-chat-hf"
 
-        #Load model
-        #num_layers = 40 #for llama-2-7b-chat-hf, 40 for llama-2-13b-hf
-        # device_map = {
-        #     "model.embed_tokens": 0,
-        #     "model.norm": 1,
-        #     "lm_head": 1,
-        # } | {
-        #     f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
-        # }
-        proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length)
-        new_datapath = f'data/ed_verbalized_uncertainty_{dataset_name}'
-        #print(proccessed_data['train'].head(1))
-        response = None
-        splits = ['train', 'validation', 'test']
-        modes = ["confidence-elicitation", "logit-based"]
-        mode = modes[0]
-        try:
-            for split in splits:
-                print(f"************Started {split} for dataset {dataset_name}**********") 
-                outputs = generate_responses(proccessed_data[split],split,model,tokenizer, device, mode, dataset_name, error_flag, idx2emotion)
-                print(f"Outputs for {split} for dataset {dataset_name} are ready for saving!")
-                new_df = pd.DataFrame(outputs)
-                ds_path = f"{new_datapath}/{split}"
-                save_split_to_dataset(split, new_df, ds_path)
-                send_slack_notification( f"Uncertainty verbalization completed for split {dataset_name}:{split}", error_flag)
-            message= merge_datasets(new_datapath)
-            send_slack_notification(f"Uncertainty verbalization completed successfully: {message}", error_flag)
-        except Exception as e:
-            send_slack_notification(f"UERC failed with error: {e}", error_flag)  
+#Load model
+
+
+model, tokenizer = model_settings(model_name, singleGPU) #,device_map
+
+dev0 = torch.device("cuda:0")
+dev1 = torch.device("cuda:1")
+device = dev1 if torch.cuda.device_count() > 1 else dev0
+emotion_tokens = ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger", "dis", "sad", "Ang", "Ne", "Jo", "S", "Dis", "Sur", "F"]
+#emotion_tokens_13b = 
+
+
+modes = ["confidence-elicitation", "logit-based", "P(True)"]
+mode = modes[2]
+
+assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
+assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
+#%%
+for dataset_name in datasets:
+    send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
+    context_length = 2 # the maximum number of utterances to be considered for the context
+    proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, assess_type)
+    new_datapath = f'data/ed_{mode}_{assess_type}_uncertainty_{dataset_name}'
+    #print(proccessed_data['train'].head(1))
+    response = None
+    splits = ['train', 'validation', 'test']
+
+    try:
+        for split in splits:
+            print(f"************Started {split} for dataset {dataset_name}**********") 
+            outputs = generate_responses(proccessed_data[split],
+                                         split,model,tokenizer, device,
+                                           mode, dataset_name, error_flag,
+                                             emotion_tokens,idx2emotion, 
+                                             assess_type=assess_type)
+            new_df = pd.DataFrame(outputs)
+            ds_path = f"{new_datapath}/{split}"
+            save_split_to_dataset(split, new_df, ds_path)
+            send_slack_notification( f"Uncertainty {mode} completed for split {dataset_name}:{split}", error_flag)
+        message= merge_datasets(new_datapath)
+        send_slack_notification(f"Uncertainty {mode} completed successfully: {message}", error_flag)
+    except Exception as e:
+        send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 
 #%%
-if __name__=="__main__":
-    main()
-    print("The program finished successfully!")
+# if __name__=="__main__":
+#     main()
+#     print("Finished successfully!")
 
 #%%
 
-ds1 = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
-print(ds1)
+#ds1 = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
+#print(ds1['train'])
+
 # # %%
-# ds1 = load_from_disk("./data/ed_verbalized_uncertainty_meld_all_splits")
-# #ds2 = load_from_disk("data/ed_verbalized_uncertainty_emowoz_all_splits")
-# #ds3 = load_from_disk("data/ed_verbalized_uncertainty_dailydialog_all_splits")
-# # # %%
-# ind = 100
-# print("Context: ", ds1['train']['context'][:ind],"predictions_emotion:", ds1['train']['prediction_emotion'][:ind],
-#         "ground_truth:", ds1['train']['ground_truth'][:ind], 
-#         " confidence:", ds1['train']['confidence'][:ind], 
-#     " query", ds1['train']['query'][:ind])
-# print("predictions_emotion:", ds1['validation']['prediction_emotion'][:ind],
-#         "ground_truth:", ds1['validation']['ground_truth'][:ind], 
-#         " confidence:", ds1['validation']['confidence'][:ind], 
-#     " query", ds1['validation']['query'][:ind])
-# print("predictions_emotion:", ds1['test']['prediction_emotion'][:ind],
-#             "ground_truth:", ds1['test']['ground_truth'][:ind], 
-#             " confidence:", ds1['test']['confidence'][:ind], 
-#         " query", ds1['test']['query'][:ind])
-
-# #print(ds2['train'][1])
-# #print(ds3['train'][1])
-
-#     #%%
-# ds1 = load_from_disk("data/ed_verbalized_uncertainty_meld_all_splits")
-# len(ds1['train'])
-# %%
-#emotion2idx
-
-# %%
-def calculate_accuracy(predictions_emotion, ground_truth_emotion):
-    total_samples = len(predictions_emotion)
-    correct_predictions = sum(1 for pred, truth in zip(predictions_emotion, ground_truth_emotion) if pred == truth)
-    accuracy = (correct_predictions / total_samples) * 100
-    return accuracy
-
-# Given data
-predictions_emotion_list = ['neutral', 'neutral', 'neutral', 'surprise', 'neutral', 'surprise', 'neutral', 'neutral', 'fear', 'joy', 'surprise', 'surprise', 'neutral', 'neutral', 'neutral', 'neutral', 'sadness', 'surprise', 'surprise', 'neutral', 'neutral', 'neutral', 'neutral', 'joy', 'joy', 'surprise', 'surprise', 'surprise', 'sadness', 'anger', 'surprise', 'surprise', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'joy', 'joy', 'joy', 'joy', 'sadness', 'sadness', 'neutral', 'joy', 'neutral', 'joy', 'surprise', 'joy', 'surprise', 'surprise', 'anger', 'neutral', 'anger', 'anger', 'neutral', 'joy', 'sadness', 'sadness', 'neutral', 'surprise', 'surprise', 'anger', 'joy', 'neutral', 'neutral', 'neutral', 'joy', 'joy', 'joy', 'joy', 'joy', 'joy', 'neutral', 'joy', 'surprise', 'joy', 'disgust', 'surprise', 'surprise', 'anger', 'neutral', 'joy', 'joy', 'neutral', 'joy', 'joy', 'joy', 'neutral', 'surprise', 'anger', 'neutral', 'fear', 'neutral', 'fear', 'joy', 'fear', 'surprise', 'surprise', 'surprise']
+#features = ['context', 'query', 'ground_truth', 'prompt_for_finetune', 'prediction_emotion', 'confidence']
+#ind = 1
+#print('context: ' , ds1['train']['context'][ind], 'query: ', ds1['train']['query'][ind], 'ground_truth: ', ds1['train']['ground_truth'][ind], 'prompt_for_finetune: ', ds1['train']['prompt_for_finetune'][ind], 'prediction_emotion: ', ds1['train']['prediction_emotion'][ind], 'confidence: ', ds1['train']['confidence'][ind]  )
 
 
-ground_truth_emotion_list = ['neutral', 'neutral', 'surprise', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'fear', 'neutral', 'surprise', 'surprise', 'fear', 'neutral', 'neutral', 'joy', 'sadness', 'surprise', 'neutral', 'disgust', 'sadness', 'neutral', 'neutral', 'joy', 'neutral', 'surprise', 'neutral', 'neutral', 'neutral', 'surprise', 'sadness', 'surprise', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'joy', 'joy', 'joy', 'sadness', 'neutral', 'neutral', 'neutral', 'joy', 'neutral', 'neutral', 'anger', 'joy', 'neutral', 'surprise', 'anger', 'anger', 'anger', 'neutral', 'neutral', 'sadness', 'sadness', 'sadness', 'surprise', 'anger', 'anger', 'anger', 'neutral', 'neutral', 'joy', 'neutral', 'neutral', 'joy', 'neutral', 'neutral', 'neutral', 'neutral', 'neutral', 'joy', 'neutral', 'neutral', 'disgust', 'anger', 'anger', 'anger', 'neutral', 'joy', 'neutral', 'neutral', 'joy', 'joy', 'joy', 'disgust', 'surprise', 'disgust', 'neutral', 'fear', 'neutral', 'surprise', 'fear', 'disgust', 'surprise', 'neutral', 'surprise']
+    #%%
 
-
-# Calculate accuracy for each set of predictions
-
-accuracy = calculate_accuracy(predictions_emotion_list, ground_truth_emotion_list )
-print(f"Accuracy of predictions_emotion : {accuracy:.2f}%")
-
-
+ds1 = load_from_disk("data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
+ds1['validation'][:10]
 # %%
