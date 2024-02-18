@@ -5,12 +5,21 @@ def template_meld(context, query, mode,emotion_label = None):
     if mode == "P(True)":
 
         prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-    Always you reaon on the \"\"\"Context\"\"\" of a conversation and recognize that wherther the proposed emotional state for a given '''Query utterance''' 
-    is A where the proposed label matches the emotional state of the "Query utterance" or B where the proposed label does not match the emotional state of the "Query utterance". 
-    
-    The output is either the character A or B without any extra explanation on reasoning.
+    Your task is to analyze and reaon on the \"\"\"Context\"\"\" of a conversation and determine if the proposed emotional state for a given '''Query utterance''' 
+    is accurately represented.
+     
+        A: The proposed label correctly identifies the emotional state of the Query utterance.
+        B: Another emotional label from the list of potential emotions better represents the emotional state of the Query utterance.
 
-    The proposed emotional state is always one of the following emotion labels:
+        
+    Always reason on the provided conversation context to assess whether the emotional state proposed for a Query utterance is:
+
+            A: Accurately represented by the proposed label.
+
+            B: Can be more accurately represented by a different label from the potential emotion labels."
+
+
+    The potential emotional states list is as followings:
 
         neutral: where the conversation does not carry any emotional feeling and the interlocutor of the '''Query utterance''' feels indifferent, nothing in particular, and a lack of preference one way or the other.
         
@@ -29,50 +38,71 @@ def template_meld(context, query, mode,emotion_label = None):
 
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
 
+
 ---Input:
+
     Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
             [The Interviewer]: You mustve had your hands full. [neutral]
+
     Query utterance: [Chandler]: That I did. That I did. 
 
-The proposed emotional label for th "Query utterance" is: neutral
 
-Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is 'neutral' the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+Question: Given the context and considering the potential emotion labels, is 'neutral' the most accurate label to describe the emotional state conveyed in the Query utterance?
+
     A: Yes
+
     B: No
 
+    
 ---Output:
+    
     The correct answer is: A
 
     
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 ---Input:
+
     Context: [Monica]: You never knew she was a lesbian? [surprise]
     [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+
     Query utterance: [Monica]: I am sorry
 
-Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is 'joy' the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+
+Question: Given the context and considering the potential emotion labels, is 'joy' the most accurate label to describe the emotional state conveyed in the Query utterance?
+
     A: Yes
+
     B: No
 
+    
 ---Output:
+
     The correct answer is: B
 
 """ + E_SYS+ f""" Here is a new conversation:
 
     ---Input:
+
         Context: {context}
+        
         Query utterance: {query} 
 
 
-Considering the list of emotion labels (neutral, surprise, fear, sadness, joy, disgust, anger), is {emotion_label} the most accurate label to describe the emotional state of the interlecutor in the 'Query Utterance'?
+The proposed label for th "Query utterance" is: '{emotion_label}'
+
+Question: Given the context and considering the potential emotion labels, is '{emotion_label}' the most accurate label to describe the emotional state conveyed in the Query utterance?
+
     A: Yes
+
     B: No
+
+Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
     ---Output:
         The answer is:
  
- """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, the most accurate answer is:"
+ """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
     else: #Add other shape of assessment
         prompt= None
 
