@@ -150,7 +150,7 @@ def save_split_to_dataset(split_name, split_df, dataset_dir):
     dataset_dict.save_to_disk(dataset_dir)
     #Return a message
     return f"Saved {split_name} to {dataset_dir}"
-def get_transition_scores(inputs_zero, outputs_gen, max_new_tokens):
+def get_transition_scores(inputs_zero,model, tokenizer, outputs_gen, max_new_tokens):
     token_logits = { "token_string":[], "probability":[]}
     #print("########Scores for transition########")
     #print(f"shape of scores is: {scores.shape}")
@@ -222,7 +222,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             output = extract_values(response)
             outputs['context'].append(prompts_dataset['context'][i])
             outputs['query'].append(prompts_dataset['query'][i])
-            outputs['ground_truth'].append(idx2emotion[prompts_dataset['emotion'][i]])
+            outputs['ground_truth'].append(idx2emotion[prompts_dataset['ground_truth'][i]])
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['prediction'].append(output[0])
             outputs['confidence'].append(output[2])
@@ -245,13 +245,13 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=100)
             response = tokenizer.decode(outputs_zero.sequences[0], skip_special_tokens=False)
             #print(f"output sequence: {response}")
-            transition_scores = get_transition_scores(inputs_zero ,outputs_zero, 6)
+            transition_scores = get_transition_scores(inputs_zero,model, tokenizer ,outputs_zero, 6)
             model_scores = get_logits_for_generated_output(outputs_zero, model, tokenizer,input_length, 6)
             label_probs_transition = extract_label_probs(transition_scores, emotion_tokens)
             label_probs_model = extract_label_probs(model_scores, emotion_tokens)
             outputs['context'].append(prompts_dataset['context'][i])
             outputs['query'].append(prompts_dataset['query'][i])
-            outputs['ground_truth'].append(idx2emotion[prompts_dataset['emotion'][i]])
+            outputs['ground_truth'].append(idx2emotion[prompts_dataset['ground_truth'][i]])
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['prediction_emotion_model'].append(label_probs_model[0])
             outputs['confidence_model'].append(label_probs_model[1])
@@ -281,7 +281,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             response = tokenizer.decode(outputs_zero.sequences[0], skip_special_tokens=False)
             #print(f"output sequence: {response}")
-            transition_scores = get_transition_scores(inputs_zero ,outputs_zero, 4)
+            transition_scores = get_transition_scores(inputs_zero, model, tokenizer ,outputs_zero, 4)
             model_scores = get_logits_for_generated_output(outputs_zero, model, tokenizer,input_length, 4)
             label_probs_transition = extract_label_probs(transition_scores, target_tokens)            
             label_probs_model = extract_label_probs(model_scores, target_tokens)
@@ -332,31 +332,15 @@ def prepare_data(dataset_name, context_length, assess_type):
         idx2emotion = {k:v for k,v in enumerate (emotion_labels)}
 
         if assess_type == "self-assessment":
-        
-            dataset_dict = load_from_disk(f"data/ed_verbalized_uncertainty_{dataset_name}_all_splits")
-            
-            #print(dataset_dict['train'])
-            #for i in range(len(dataset_dict['train'])):
-             #   print(f"ground_truth: {dataset_dict['train']['ground_truth'][i]}, prediction_emotion: {dataset_dict['train']['prediction_emotion'][i]}")
-            # Assuming proccessed_data is a dictionary with keys like 'train', 'validation', 'test'
-            # and each of these keys maps to a dataset
             features = ['context', 'query','ground_truth', 'prediction_emotion']
-        
-            # converd dataset to dataframe and drop the columns that are not in features list and change the title of column 'prediction_emotion' to emotion
-            #Then add the dataframe to the proccessed_data dictionary
-            proccessed_data = {}
-            for split in ['train', 'validation', 'test']:
-                proccessed_data[split] = dataset_dict[split].to_pandas()
-                proccessed_data[split] = proccessed_data[split].drop(columns=[col for col in proccessed_data[split].columns if col not in features])
-                #proccessed_data[split].rename(columns={'ground_truth': 'emotion'}, inplace=True)
         elif assess_type == "random-assessment":
-            datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
-            datasets_df = load_ds(datapath)
-            ds_grouped_dialogues = group_dialogues(datasets_df)
-            proccessed_data = {}
-            proccessed_data['train'] = extract_context_meld(ds_grouped_dialogues['train'],context_length, emotion2idx)
-            proccessed_data['test'] = extract_context_meld(ds_grouped_dialogues['test'],context_length, emotion2idx)
-            proccessed_data['validation'] = extract_context_meld(ds_grouped_dialogues['validation'],context_length,emotion2idx)
+            features = ['context', 'query','ground_truth']
+        dataset_dict = load_from_disk(f"data/ed_verbalized_uncertainty_{dataset_name}_all_splits")
+        proccessed_data = {}
+        for split in ['train', 'validation', 'test']:
+            proccessed_data[split] = dataset_dict[split].to_pandas()
+            proccessed_data[split] = proccessed_data[split].drop(columns=[col for col in proccessed_data[split].columns if col not in features])
+       
     elif dataset_name =='emowoz':
         dataset = load_dataset("hhu-dsml/emowoz", 'emowoz')
         emotion_labels = ["unlabled","neutral", "fearful or sad/disappointed", "dissatisfied" , "apologetic", "abusive", "excited", "satisfied"]
@@ -410,7 +394,7 @@ emotion_tokens = ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "a
 modes = ["confidence-elicitation", "logit-based", "P(True)"]
 mode = modes[2]
 
-assess_types = ["self-assessment", "random-assessment", "verbalized-assessment"] # ground-truth, random labels, results from the verbalized prediction
+assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
 assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 #%%
 for dataset_name in datasets:
