@@ -293,11 +293,19 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             outputs['prediction_truthfulness'].append(label_probs_model[0])
             outputs['ptrue-transition_probs'].append(label_probs_transition[1])
             outputs['ptrue-model_probs'].append(label_probs_model[1])
+<<<<<<< HEAD
             #if i % 1000 == 1:
                 #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
             print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i],  "emotion_inserted:", outputs["emotion_inserted"][i], ", prediction_truthfulness: ", 
                     outputs['prediction_truthfulness'][i], "   , ptrue-transition_probs:",  outputs['ptrue-transition_probs'][i],', ptrue-model_probs:',outputs['ptrue-model_probs'][i] )
+=======
+            if i % 100 == 1:
+                print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
+                send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i],  "emotion_inserted:", outputs["emotion_inserted"][i], ", prediction_truthfulness: ", 
+                      outputs['prediction_truthfulness'][i], "   , ptrue-transition_probs:",  outputs['ptrue-transition_probs'][i],', ptrue-model_probs:',outputs['ptrue-model_probs'][i] )
+>>>>>>> 1f8683a354ef7a30c1a443d4ba121ac2f3eb8d36
     return outputs
             
 #%%    
@@ -444,6 +452,11 @@ for dataset_name in datasets:
 
     #%%
 
+<<<<<<< HEAD
 ds1 = load_from_disk("/home/samad/projects/llama2-uerc-master/data/ed_P(True)_random-assessment_uncertainty_meld_all_splits")
 ds1['train'][:2]
+=======
+#ds1 = load_from_disk("/home/samad/Projects/llama2-uerc-master/data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
+#ds1['test'][:2]
+>>>>>>> 1f8683a354ef7a30c1a443d4ba121ac2f3eb8d36
 # %%
