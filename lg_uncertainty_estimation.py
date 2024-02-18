@@ -310,7 +310,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             outputs['prediction_truthfulness'].append(label_probs_model[0])
             outputs['ptrue-transition_probs'].append(label_probs_transition[1])
             outputs['ptrue-model_probs'].append(label_probs_model[1])
-            if i  % 100 ==0:
+            if i  % 100 == 1:
                 print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
                 send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 if label_probs_model[0] == "B":
