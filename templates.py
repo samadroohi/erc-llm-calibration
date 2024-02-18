@@ -5,37 +5,17 @@ def template_meld(context, query, mode,emotion_label = None):
     if mode == "P(True)":
 
         prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-    Your task is to analyze and reaon on the \"\"\"Context\"\"\" of a conversation and determine if the proposed emotional state for a given '''Query utterance''' 
-    is accurately represented.
-     
-        A: The proposed label correctly identifies the emotional state of the Query utterance.
-        B: Another emotional label from the list of potential emotions better represents the emotional state of the Query utterance.
+    Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
+    triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
 
-        
-    Always reason on the provided conversation context to assess whether the emotional state proposed for a Query utterance is:
+        A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "Query utterance".
 
-            A: Accurately represented by the proposed label.
+        B: No, the emotional state of the interlocutor of the "Query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
 
-            B: Can be more accurately represented by a different label from the potential emotion labels."
+    
+    The potential emotional states list is as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
-
-    The potential emotional states list is as followings:
-
-        neutral: where the conversation does not carry any emotional feeling and the interlocutor of the '''Query utterance''' feels indifferent, nothing in particular, and a lack of preference one way or the other.
-        
-        surprise: where the interlocutor of the '''Query utterance''' feels astonishment when something totally unexpected happens to you. 
-        
-        fear: where the interlocutor of the '''Query utterance''' feels an unpleasant often strong emotion caused by expectation or awareness of danger
-        
-        sadness: where the interlocutor of the '''Query utterance''' feels lowness or unhappiness that comes usually because something bad has happened but not always.
-        
-        joy: where the interlocutor of the '''Query utterance''' feels well-being, success, or good fortune, and is typically associated with feelings of intense, long-lasting happiness.
-        
-        disgust: where the interlocutor of the '''Query utterance''' feels a strong feeling of disapproval or dislike, or a feeling of becoming ill caused by something unpleasant
-        
-        anger: where the interlocutor of the '''Query utterance''' feels intense emotion when something has gone wrong or someone has wronged you. It is typically characterized by feelings of stress, frustration, and irritation.
-
-
+    
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
 
 
@@ -47,9 +27,11 @@ Here's an example of how an emotion recognition assistant for conversation analy
     Query utterance: [Chandler]: That I did. That I did. 
 
 
-Question: Given the context and considering the potential emotion labels, is 'neutral' the most accurate label to describe the emotional state conveyed in the Query utterance?
+Question: Given the context and considering the potential emotion labels, is the proposed label ```neutral``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
 
     A: Yes
+
+    or
 
     B: No
 
@@ -69,9 +51,11 @@ Here is another example of how an emotion recognition in conversation assistant 
     Query utterance: [Monica]: I am sorry
 
 
-Question: Given the context and considering the potential emotion labels, is 'joy' the most accurate label to describe the emotional state conveyed in the Query utterance?
+Question: Given the context and considering the potential emotion labels, is the proposed label ```joy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
 
     A: Yes
+
+    or
 
     B: No
 
@@ -89,17 +73,19 @@ Question: Given the context and considering the potential emotion labels, is 'jo
         Query utterance: {query} 
 
 
-The proposed label for th "Query utterance" is: '{emotion_label}'
 
-Question: Given the context and considering the potential emotion labels, is '{emotion_label}' the most accurate label to describe the emotional state conveyed in the Query utterance?
+Question: Given the context and considering the potential emotion labels, is the proposed label ```{emotion_label}``` the most accurate label to describe hte emotional state of the interlocutor of the Query utterance?
 
     A: Yes
+
+    or
 
     B: No
 
 Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
     ---Output:
+
         The answer is:
  
  """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
@@ -107,6 +93,119 @@ Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', '
         prompt= None
 
     return prompt
+
+
+def template_meld_def(context, query, mode,emotion_label = None):
+    if mode == "P(True)":
+
+        prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
+    triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
+
+        A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "Query utterance".
+
+        B: No, the emotional state of the interlocutor of the "Query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
+
+    
+    The potential emotional states list is as followings: 
+    
+        neutral: A state characterized by the absence of strong emotions, where the individual experiences neither positive nor negative feelings, indicating a state of equilibrium or emotional balance. This condition reflects an even-tempered psychological stance, where the individual feels neither significantly uplifted nor downcast, embodying a sense of calmness and contentment without any pronounced emotional engagement (Russell & Mehrabian, 1977).
+
+        surprise: Defined as a sudden and often startling emotional response to an unexpected event, surprise encompasses a wide range of intensities, from mild astonishment to profound shock. This emotion is characterized by its brief duration and its role as a precursor to other emotional states, serving as a mechanism to orient attention towards new and unforeseen stimuli (Russell, 2003).
+
+        fear: An adaptive emotional response to perceived threats or danger, fear involves a complex interplay of physiological and cognitive processes. It prepares the individual for a fight-or-flight response, characterized by heightened vigilance and readiness to act in the face of potential harm (Ekman & Cordaro, 2011).
+
+        sadness: A more nuanced emotional state than simply feeling unhappy or downcast, sadness can arise from a variety of causes, including loss, disappointment, or reflection on missed opportunities. This emotion is associated with a decrease in energy levels and motivation, often leading to introspection and a reevaluation of personal goals and values (Schachter & Singer, 1962).
+
+        joy: Encompasses a range of positive emotional states, including happiness, contentment, and euphoria. Joy is often elicited by experiences of success, achievement, or other fulfilling events, leading to an overall sense of well-being and satisfaction. This emotion can enhance creativity, social bonding, and overall mental health (Bagozzi, Gopinath, & Nyer, 1999).
+
+        disgust: A powerful emotional response to objects, behaviors, or situations perceived as offensive, repulsive, or harmful. Disgust serves as a protective mechanism, helping to avoid potentially dangerous or contaminated environments. It can manifest physically through expressions of revulsion and behaviors aimed at distancing oneself from the source of disgust (Rozin & Fallon, 1987).
+
+        anger: A complex emotion characterized by feelings of frustration, irritation, and antagonism, often triggered by perceived wrongs or injustice. While commonly associated with aggression and conflict, anger can also motivate constructive actions aimed at addressing grievances and promoting change (Nesse, 1990).
+
+    
+Here's an example of how an emotion recognition assistant for conversation analysis should function:
+
+
+---Input:
+
+    Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+            [The Interviewer]: You mustve had your hands full. [neutral]
+
+    Query utterance: [Chandler]: That I did. That I did. 
+
+
+Question: Given the context and considering the potential emotion labels, is the proposed label ```neutral``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+    
+    The correct answer is: A
+
+    
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+---Input:
+
+    Context: [Monica]: You never knew she was a lesbian? [surprise]
+    [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+
+    Query utterance: [Monica]: I am sorry
+
+
+Question: Given the context and considering the potential emotion labels, is the proposed label ```joy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+
+    The correct answer is: B
+
+""" + E_SYS+ f""" Here is a new conversation:
+
+    ---Input:
+
+        Context: {context}
+        
+        Query utterance: {query} 
+
+
+
+Question: Given the context and considering the potential emotion labels, is the proposed label ```{emotion_label}``` the most accurate label to describe hte emotional state of the interlocutor of the Query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+
+    ---Output:
+
+        The answer is:
+ 
+ """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
+    else: #Add other shape of assessment
+        prompt= None
+
+    return prompt
+
+
+
+
+
 
 def template_emowoz(context, query):
 
