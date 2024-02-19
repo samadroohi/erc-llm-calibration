@@ -130,6 +130,8 @@ def model_settings(model_name, single_gpu): #, device_map
         bnb_4bit_compute_dtype=torch.float16,
     )
     if single_gpu:
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
+    else:
         device_map = {
                 "model.embed_tokens": 0,
                 "model.norm": 1,
@@ -137,9 +139,7 @@ def model_settings(model_name, single_gpu): #, device_map
             } | {
                 f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
             }
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config) #, device_map=device_map
-    else:
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config, device_map=device_map) #
 
     tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code = True )
     model.model.eval()
@@ -387,7 +387,7 @@ def prepare_data(dataset_name, context_length, assess_type):
 #%%
 #Main
 #def main():
-singleGPU = True
+singleGPU = False
 error_flag = False
 gc.collect()
 torch.cuda.empty_cache()
@@ -411,7 +411,7 @@ modes = ["confidence-elicitation", "logit-based", "P(True)"]
 mode = modes[2]
 
 assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
-assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
+assess_type = assess_types[1] #self-assessment is for computing P(True) on the results generated from the verbalization method
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
@@ -457,6 +457,6 @@ for dataset_name in datasets:
 
     #%%
 
-ds1 = load_from_disk("data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
-ds1['validation'][:10]
+#ds1 = load_from_disk("data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
+#ds1['validation'][:10]
 # %%
