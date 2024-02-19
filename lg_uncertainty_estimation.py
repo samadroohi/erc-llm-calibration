@@ -72,13 +72,16 @@ def extract_answer(batch):
 
         
         
-def prepare_prompt(input_df, dataset_name ,mode, inserted_emotion=None):
+def prepare_prompt(input_df, dataset_name ,mode, inserted_emotion=None, template_type=None):
     
     prompts = list()
     if dataset_name == 'emowoz':
             template = templates.template_emowoz
     elif dataset_name == 'meld':
-        template = templates.template_meld
+        if template_type == "non-definitive":
+            template = templates.template_meld
+        elif template_type == "definitive":
+            template = templates.template_meld_def
     elif dataset_name == 'dailydialog':
         template = templates.template_dailydialog
     for i in range (len(input_df['context'])):
@@ -119,17 +122,18 @@ def extract_values(output_str):
     return (emotion,index, confidence)
 
 def model_settings(model_name, single_gpu): #, device_map
-    if model_name == "meta-llama/Llama-2-13b-chat-hf":
-        num_layers = 40
-    elif model_name == "meta-llama/Llama-2-7b-chat-hf":
-        num_layers = 32
-
     bnb_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type="nf4",
-        bnb_4bit_compute_dtype=torch.float16,
-    )
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.float16,
+        )
     if single_gpu:
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
+    else:
+        if model_name == "meta-llama/Llama-2-13b-chat-hf":
+            num_layers = 40
+        elif model_name == "meta-llama/Llama-2-7b-chat-hf":
+            num_layers = 32
         device_map = {
                 "model.embed_tokens": 0,
                 "model.norm": 1,
@@ -137,9 +141,7 @@ def model_settings(model_name, single_gpu): #, device_map
             } | {
                 f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
             }
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config) #, device_map=device_map
-    else:
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config, device_map=device_map)
 
     tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code = True )
     model.model.eval()
@@ -217,7 +219,7 @@ def extract_label_probs(token_logits, target_tokens):
     return (label,label_prob)
 
 #%%
-def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, emotion_tokens, idx2emotion, assess_type=None):
+def generate_responses(proccessed_data, split,model,tokenizer,device, mode, dataset_name, error_flag, emotion_tokens, idx2emotion, assess_type=None, template_type=None):
 
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
     
@@ -282,7 +284,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             inserted_emotion = proccessed_data['prediction_emotion']
         elif assess_type == "random-assessment":
             inserted_emotion = np.random.choice(list(idx2emotion.values()), len(proccessed_data['context']))
-        prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode, inserted_emotion)
+        prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode, inserted_emotion, template_type)
         outputs['emotion_inserted']=[]
         outputs['prediction_truthfulness']=[] #A:True B:False
         outputs['ptrue-transition_probs']=[]
@@ -310,13 +312,15 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode, data
             outputs['prediction_truthfulness'].append(label_probs_model[0])
             outputs['ptrue-transition_probs'].append(label_probs_transition[1])
             outputs['ptrue-model_probs'].append(label_probs_model[1])
-            if i  % 100 == 1:
+            if i %100 == 1:
                 print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
                 send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 if label_probs_model[0] == "B":
                     print(f"\n ******\n output sequence: {response} ")
                 print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i],  "emotion_inserted:", outputs["emotion_inserted"][i], ", prediction_truthfulness: ", 
                     outputs['prediction_truthfulness'][i], "   , ptrue-transition_probs:",  outputs['ptrue-transition_probs'][i],', ptrue-model_probs:',outputs['ptrue-model_probs'][i] )
+                
+    
     return outputs
             
 #%%    
@@ -412,12 +416,15 @@ mode = modes[2]
 
 assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
 assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
+
+template_types = ["non-definitive", "definitive"]
+template_type = template_types[1]
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
     context_length = 2 # the maximum number of utterances to be considered for the context
     proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, assess_type)
-    new_datapath = f'data/ed_{mode}_{assess_type}_uncertainty_{dataset_name}'
+    new_datapath = f'data/ed_{mode}_{assess_type}_{template_type}_uncertainty_{dataset_name}'
     #print(proccessed_data['train'].head(1))
     response = None
     splits = ['train', 'validation', 'test']
@@ -429,7 +436,8 @@ for dataset_name in datasets:
                                          split,model,tokenizer, device,
                                            mode, dataset_name, error_flag,
                                              emotion_tokens,idx2emotion, 
-                                             assess_type=assess_type)
+                                             assess_type=assess_type,
+                                             template_type= template_type)
             new_df = pd.DataFrame(outputs)
             ds_path = f"{new_datapath}/{split}"
             save_split_to_dataset(split, new_df, ds_path)
@@ -457,6 +465,6 @@ for dataset_name in datasets:
 
     #%%
 
-ds1 = load_from_disk("data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
-ds1['validation'][:10]
+ds1 = load_from_disk("data/ed_P(True)_self-assessment_definitive_uncertainty_meld_all_splits")
+ds1['validation']['prompt_for_finetune'][0]
 # %%
