@@ -130,10 +130,13 @@ def model_settings(model_name, single_gpu): #, device_map
     if single_gpu:
         model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
     else:
+<<<<<<< HEAD
+=======
         if model_name == "meta-llama/Llama-2-13b-chat-hf":
             num_layers = 40
         elif model_name == "meta-llama/Llama-2-7b-chat-hf":
             num_layers = 32
+>>>>>>> a551f008d64a0ea457a19bb77a09e3c1b51344d1
         device_map = {
                 "model.embed_tokens": 0,
                 "model.norm": 1,
@@ -141,7 +144,11 @@ def model_settings(model_name, single_gpu): #, device_map
             } | {
                 f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
             }
+<<<<<<< HEAD
+        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config, device_map=device_map) #
+=======
         model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config, device_map=device_map)
+>>>>>>> a551f008d64a0ea457a19bb77a09e3c1b51344d1
 
     tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code = True )
     model.model.eval()
@@ -391,7 +398,7 @@ def prepare_data(dataset_name, context_length, assess_type):
 #%%
 #Main
 #def main():
-singleGPU = True
+singleGPU = False
 error_flag = False
 gc.collect()
 torch.cuda.empty_cache()
@@ -415,10 +422,14 @@ modes = ["confidence-elicitation", "logit-based", "P(True)"]
 mode = modes[2]
 
 assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
+<<<<<<< HEAD
+assess_type = assess_types[1] #self-assessment is for computing P(True) on the results generated from the verbalization method
+=======
 assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 
 template_types = ["non-definitive", "definitive"]
 template_type = template_types[1]
+>>>>>>> a551f008d64a0ea457a19bb77a09e3c1b51344d1
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
@@ -465,6 +476,11 @@ for dataset_name in datasets:
 
     #%%
 
+<<<<<<< HEAD
+#ds1 = load_from_disk("data/ed_P(True)_self-assessment_uncertainty_meld_all_splits")
+#ds1['validation'][:10]
+=======
 ds1 = load_from_disk("data/ed_P(True)_self-assessment_definitive_uncertainty_meld_all_splits")
 ds1['validation']['prompt_for_finetune'][0]
+>>>>>>> a551f008d64a0ea457a19bb77a09e3c1b51344d1
 # %%
