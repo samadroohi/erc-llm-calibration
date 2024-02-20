@@ -109,19 +109,19 @@ def template_meld_def(context, query, mode,emotion_label = None):
     
     The potential emotional states list is as followings: 
     
-        neutral: A state characterized by the absence of strong emotions, where the individual experiences neither positive nor negative feelings, indicating a state of equilibrium or emotional balance. This condition reflects an even-tempered psychological stance, where the individual feels neither significantly uplifted nor downcast, embodying a sense of calmness and contentment without any pronounced emotional engagement.
+        neutral: A state of emotional balance with no strong emotions present, marked by calmness and an even-tempered psychological stance.
 
-        surprise: Defined as a sudden and often startling emotional response to an unexpected event, surprise encompasses a wide range of intensities, from mild astonishment to profound shock. This emotion is characterized by its brief duration and its role as a precursor to other emotional states, serving as a mechanism to orient attention towards new and unforeseen stimuli.
+        surprise: A brief, intense emotional response to unexpected events, ranging from mild astonishment to profound shock, which shifts attention towards new stimuli.
 
-        fear: An adaptive emotional response to perceived threats or danger, fear involves a complex interplay of physiological and cognitive processes. It prepares the individual for a fight-or-flight response, characterized by heightened vigilance and readiness to act in the face of potential harm.
+        fear: An emotion triggered by perceived threats, characterized by a fight-or-flight response, heightened vigilance, and readiness to act.
 
-        sadness: A more nuanced emotional state than simply feeling unhappy or downcast, sadness can arise from a variety of causes, including loss, disappointment, or reflection on missed opportunities. This emotion is associated with a decrease in energy levels and motivation, often leading to introspection and a reevaluation of personal goals and values.
+        sadness: An emotional state arising from loss, disappointment, or reflection, associated with decreased energy and motivation, leading to introspection.
 
-        joy: Encompasses a range of positive emotional states, including happiness, contentment, and euphoria. Joy is often elicited by experiences of success, achievement, or other fulfilling events, leading to an overall sense of well-being and satisfaction. This emotion can enhance creativity, social bonding, and overall mental health.
+        joy: A positive state reflecting happiness, contentment, or euphoria, often resulting from success or fulfilling experiences, enhancing well-being and social bonds.
 
-        disgust: A powerful emotional response to objects, behaviors, or situations perceived as offensive, repulsive, or harmful. Disgust serves as a protective mechanism, helping to avoid potentially dangerous or contaminated environments. It can manifest physically through expressions of revulsion and behaviors aimed at distancing oneself from the source of disgust.
+        disgust: An emotional reaction to offensive, repulsive, or harmful stimuli, acting as a protective mechanism to avoid danger or contamination.
 
-        anger: A complex emotion characterized by feelings of frustration, irritation, and antagonism, often triggered by perceived wrongs or injustice. While commonly associated with aggression and conflict, anger can also motivate constructive actions aimed at addressing grievances and promoting change.
+        anger: An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
 
     
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
