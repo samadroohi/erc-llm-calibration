@@ -37,7 +37,7 @@ def format_contex(context):
         context_fr += f'[{ctx["Speaker"]}]: {ctx["Utterance"]} [{ctx["Emotion"]}]'
 
     return context_fr
-def extract_context_meld(groupped_df, context_window, emotion2idx):
+def extract_context_meld(groupped_df, context_window):
     data_frame = pd.DataFrame()
     for dialogue in groupped_df: 
         for i in range(0, len(dialogue)-context_window-1):
@@ -45,7 +45,7 @@ def extract_context_meld(groupped_df, context_window, emotion2idx):
             context_fr =format_contex(context)
             #print(context_fr)
             query_utterance = dialogue.iloc[i+context_window]['Utterance']
-            query_emotion = emotion2idx[dialogue.iloc[i+context_window]['Emotion']]
+            query_emotion = dialogue.iloc[i+context_window]['Emotion']
             query_speaker = dialogue.iloc[i+context_window]['Speaker']
             query = f'[{query_speaker}]:{query_utterance}'
             dlg = pd.DataFrame({'context':context_fr,'query': query, 'emotion':query_emotion}, index=[i])
