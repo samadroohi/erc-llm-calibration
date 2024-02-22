@@ -16,6 +16,7 @@ from datasets import Dataset, DatasetDict, load_from_disk, load_dataset
 import requests
 import LlamaMeldTemplates as lmtemplate
 import MistralMeldTemplates as mmtemplate
+import ZephyerMeldTemplates as zmtemplate
 from utils import *
 torch.cuda.empty_cache()
 
@@ -73,7 +74,7 @@ def extract_answer(batch):
 
         
         
-def prepare_prompt(input_df, dataset_name ,mode, model_template,template_type=None,inserted_emotion=None ):
+def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer,template_type=None,inserted_emotion=None ):
     
     prompts = list()
     if dataset_name == 'emowoz':
@@ -90,9 +91,9 @@ def prepare_prompt(input_df, dataset_name ,mode, model_template,template_type=No
         context=input_df['context'][i] 
         query=input_df['query'][i]
         if mode == "P(True)":
-            prompt = template(context, query, mode, emotion_label=inserted_emotion[i])
+            prompt = template(context, query, mode,tokenizer, emotion_label=inserted_emotion[i])
         else:
-            prompt = template(context, query, mode)
+            prompt = template(context, query, mode,tokenizer)
         prompts.append(prompt)
     input_df['prompt_for_finetune'] = prompts
 
@@ -132,17 +133,19 @@ def model_settings(model_name, num_layers ,single_gpu): #, device_map
             bnb_4bit_quant_type="nf4",
             bnb_4bit_compute_dtype=torch.float16,
         )
-    if single_gpu:
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
-    else:
-        device_map = {
-                "model.embed_tokens": 0,
-                "model.norm": 1,
-                "lm_head": 1,
-            } | {
-                f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
-            }
-        model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config, device_map=device_map) #
+    # if single_gpu:
+    #     model = AutoModelForCausalLM.from_pretrained(model_name,quantization_config=bnb_config)
+    # else:
+    #     device_map = {
+    #             "model.embed_tokens": 0,
+    #             "model.norm": 1,
+    #             "lm_head": 1,
+    #         } | {
+    #             f"model.layers.{i}": int(i >= 20) for i in range(num_layers)
+    #         }
+    model = AutoModelForCausalLM.from_pretrained(model_name,
+                                                     quantization_config=bnb_config, 
+                                                     device_map='auto') #
 
     tokenizer = AutoTokenizer.from_pretrained(model_name,trust_remote_code = True )
     model.model.eval()
@@ -224,6 +227,7 @@ def extract_label(output_strings):
         return matches[0]
     else:
         print(f"Expected 1 match, but found {len(matches)}.")
+        print(f"Output string: {output_strings}")
     
     
 
@@ -233,14 +237,14 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
   
     if mode == 'verbalized':
-        prompts_dataset = prepare_prompt(proccessed_data, dataset_name, mode, model_template,template_type= template_type)
+        prompts_dataset = prepare_prompt(proccessed_data, dataset_name, mode, model_template,tokenizer=tokenizer,template_type= template_type)
         outputs['prediction']= []
         #outputs['confidence'] = []
         for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
-            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=100, pad_token_id=tokenizer.eos_token_id)
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=10, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
             #print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
             output = extract_label(response)
@@ -251,7 +255,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['prediction'].append(output)
             #outputs['confidence'].append(output[2])
-            if i %100 == 1:
+            if i %1000 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
@@ -298,6 +302,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
         elif assess_type == "random-assessment":
             inserted_emotion = np.random.choice(list(idx2emotion.values()), len(proccessed_data['context']))
         prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode,
+                                         tokenizer=tokenizer,
                                          template_type= template_type, 
                                          inserted_emotion = inserted_emotion 
                                          )
@@ -420,9 +425,9 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
-models = ["meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2"]
-model_template = mmtemplate #mmtemplate for misteralmeld , and lmtemplate for lamameld
-model_name = models[1]
+models = ["meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
+model_template = zmtemplate #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+model_name = models[2]
 num_layers = 32 #32 for 7B and 40 for 13B
 
 #Load model

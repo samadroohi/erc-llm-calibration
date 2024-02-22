@@ -1,37 +1,38 @@
 def template_meld_ndef(context, query, mode,tokenizer,emotion_label = None):
     if mode == "P(True)":
-        prompt = meld_ptrue_ndef(context, query,tokenizer, emotion_label )
+        prompt = meld_ptrue_ndef(context, query, tokenizer,emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized_ndef(context,query, tokenizer)
+        prompt = meld_verbalized_ndef(context, query, tokenizer)
     return prompt
 
 def template_meld_def(context, query, mode,tokenizer,emotion_label = None):
     if mode == "P(True)":
         prompt = meld_ptrue_def(context, query,tokenizer,emotion_label)
     elif mode == "verbalized":
-        prompt = meld_verbalized_def(context, query, tokenizer)
+        prompt = meld_verbalized_def(context, query,tokenizer)
 
     return prompt
 
 def meld_verbalized_ndef(context, query, tokenizer):
-    prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
-    Your task is to analyse the context of a of a conversation and categorize the emotional state of 
-    the Query utterance into one of the following predefined categories: 
+    system_prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a of a conversation and categorize the emotional state of 
+    the query utterance into one of the following categories: 
     
-    neutral 
-    surprise 
-    fear 
-    sadness 
-    joy 
-    disgust 
-    anger
+    [neutral] 
+    [surprise] 
+    [fear] 
+    [sadness] 
+    [joy] 
+    [disgust] 
+    [anger]
 
 
-If the Query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
+You always will respond with the most accurate emotional state of the query utterance. 
 
-You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
+Your response always is an emotion category without any explanations or notes on the output. 
+
 
 ####
 Here are some examples:
@@ -43,7 +44,7 @@ Here are some examples:
     query utterance: [Monica]: I am sorry
 
     
-Category: [sadness]
+Output string:
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
@@ -55,18 +56,23 @@ Here is another example of how an emotion recognition in conversation assistant 
     query utterance: [Chandler]: That I did. That I did.
 
 
-Category: [neutral]
+Output string: [neutral]
 
-Remember that you will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
 
-####
-<<<
+####"""
+
+    user_prompt=f"""Remember that your response always is an emotion label without any explanations or notes. 
+ 
     context: {context} 
 
     query utterance: {query}
 
+    
+Output string:
+""" 
+    messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
 
-Category:>>>""" 
     return prompt
 
 def meld_verbalized_def(context, query, tokenizer):

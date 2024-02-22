@@ -1,25 +1,25 @@
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld_ndef(context, query, mode,emotion_label = None):
+def template_meld_ndef(context, query, mode,tokenizer,emotion_label = None):
     if mode == "P(True)":
-        prompt = meld_ptrue_ndef(context, query, emotion_label )
+        prompt = meld_ptrue_ndef(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized_ndef(context, query)
+        prompt = meld_verbalized_ndef(context, query, tokenizer)
     return prompt
 
-def template_meld_def(context, query, mode,emotion_label = None):
+def template_meld_def(context, query, mode,tokenizer,emotion_label = None):
     if mode == "P(True)":
-        prompt = meld_ptrue_def(context, query,emotion_label)
+        prompt = meld_ptrue_def(context, query,tokenizer,emotion_label)
     elif mode == "verbalized":
-        prompt = meld_verbalized_def(context, query)
+        prompt = meld_verbalized_def(context, query, tokenizer)
 
         
 
     return prompt
 
 
-def meld_verbalized_ndef(context, query):
+def meld_verbalized_ndef(context, query, tokenizer):
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 
 Your task is to predict the emotional state of a Query utterance, considering a given Context of conversation. 
@@ -93,7 +93,7 @@ Here is a new conversation:
     return prompt
 
 
-def meld_verbalized_def(context, query):
+def meld_verbalized_def(context, query, tokenizer):
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 
 Your task is to predict the emotional state of a Query utterance, considering a given Context of conversation. 
@@ -182,7 +182,7 @@ Here is a new conversation:
     return prompt   
 
 
-def meld_ptrue_ndef(context, query, emotion_label):
+def meld_ptrue_ndef(context, query, tokenizer,emotion_label):
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
@@ -272,7 +272,7 @@ Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', '
     return prompt
 
 
-def meld_ptrue_def(context, query,emotion_label):
+def meld_ptrue_def(context, query,tokenizer,emotion_label):
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
     triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
