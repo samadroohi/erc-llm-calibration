@@ -126,7 +126,7 @@ def extract_values(output_str):
         print(f"Expected at least 3 JSON objects, but found {len(json_strings)}.")
     return (emotion,index, confidence)
 
-def model_settings(model_name, num_layers ,single_gpu): #, device_map
+def model_settings(model_name): #, device_map
     bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
             bnb_4bit_use_double_quant=True,
@@ -426,14 +426,16 @@ torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
-model_template = lmtemplate #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
-model_name = models[0]
-num_layers = 32 #32 for 7B and 40 for 13B
+model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+model_index = 1
+model_name = models[model_index]
+model_template = model_templates[model_index]
+
 
 #Load model
 
 
-model, tokenizer = model_settings(model_name,num_layers, singleGPU) #,device_map
+model, tokenizer = model_settings(model_name) #,device_map
 
 dev0 = torch.device("cuda:0")
 dev1 = torch.device("cuda:1")
@@ -451,7 +453,7 @@ if mode == "P(True)":
     assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 
 template_types = ["non-definitive", "definitive"]
-template_type = template_types[0]
+template_type = template_types[1]
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
