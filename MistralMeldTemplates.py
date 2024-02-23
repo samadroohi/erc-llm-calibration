@@ -15,16 +15,16 @@ def template_meld_def(context, query, mode,tokenizer,emotion_label = None):
 
 def meld_verbalized_ndef(context, query, tokenizer):
     prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
-    Your task is to analyse the context of a of a conversation and categorize the emotional state of 
-    the Query utterance into one of the following predefined categories: 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
     
-    neutral 
-    surprise 
-    fear 
-    sadness 
-    joy 
-    disgust 
-    anger
+    [neutral] 
+    [surprise] 
+    [fear] 
+    [sadness] 
+    [joy] 
+    [disgust] 
+    [anger]
 
 
 If the Query utterance does not carry any clear emotion, the output is: [neutral]
@@ -32,6 +32,7 @@ If the Query utterance does not carry any clear emotion, the output is: [neutral
 You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
 
 You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
+
 
 ####
 Here are some examples:

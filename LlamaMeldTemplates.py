@@ -20,76 +20,60 @@ def template_meld_def(context, query, mode,tokenizer,emotion_label = None):
 
 
 def meld_verbalized_ndef(context, query, tokenizer):
-    prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-
-Your task is to predict the emotional state of a Query utterance, considering a given Context of conversation. 
+    prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
     
-The Query utterance is delimited by triple backticks and the Context is delimited with triple of double quotes.
+    [neutral] 
+    [surprise] 
+    [fear] 
+    [sadness] 
+    [joy] 
+    [disgust] 
+    [anger]
 
-    
-The potential emotional states are as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
-    
-If the '''Query utterance''' does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-You always just output the accurate emotional state of the '''Query utterance''' without any explanation. 
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
+You always will respond with the most accurate emotional state of the query utterance. 
+
+Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
 
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
----Input:
-                
-    \"\"\"Context\"\"\" : 
-
-        [Monica]: You never knew she was a lesbian? [surprise]
-        [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+####
+Here is an examples:
     
-    '''Query utterance''': 
-        [Monica]: I am sorry
+    context: [Monica]: You never knew she was a lesbian? [surprise]
+            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    
+    query utterance: [Monica]: I am sorry
+
+    
+Output string: [sadness]
 
 
----Output:
-            
-    The emotional state of the '''Query utterance''' is: [sadness]
-
-        
 Here is another example of how an emotion recognition in conversation assistant should work:
 
----Input:
 
-        
-    \"\"\"Context\"\"\": 
-        [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
         [The Interviewer]: You mustve had your hands full. [neutral]
 
-    '''Query utterance''':
-        [Chandler]: That I did. That I did. 
+    query utterance: [Chandler]: That I did. That I did.
 
+Output string: [neutral]
 
----Output:
-    
-    The emotional state of the '''Query utterance''' is: [neutral]
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
  
-""" + E_SYS+ f""" 
-Remmeber that you are a helpful, respectful and honest emotion recognition in conversation assistant and you choose the best emotion label that accurately 
-conveys the emotion state of the interlocutor of the '''Query utterance'''.
+ 
+    context: {context} 
 
-Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+    query utterance: {query}
 
-Remember that if the '''Query utterance''' does not carry any clear emotion, the output is: [neutral]
-
-
-Here is a new conversation:
-
-----Input:
-
-    \"\"\"Context\"\"\": {context}
-
-    '''Query utterance''': {query} 
-
-----Output: 
-
-""" + E_INST+ "The emotional state of the '''Query utterance''' is:" 
+""" + E_INST+ "Output string:" 
     return prompt
 
 

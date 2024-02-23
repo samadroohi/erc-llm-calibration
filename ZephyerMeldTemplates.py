@@ -37,9 +37,8 @@ Your always respond with just the most accurate emotion lable (single lable) wit
 
 
 ####
-Here are some examples:
+Here is an examples:
 
-    
     context: [Monica]: You never knew she was a lesbian? [surprise]
             [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
     

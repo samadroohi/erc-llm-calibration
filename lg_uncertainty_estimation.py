@@ -255,7 +255,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['prediction'].append(output)
             #outputs['confidence'].append(output[2])
-            if i %1000 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
@@ -425,9 +425,9 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
-models = ["meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
-model_template = zmtemplate #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
-model_name = models[2]
+models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
+model_template = lmtemplate #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+model_name = models[0]
 num_layers = 32 #32 for 7B and 40 for 13B
 
 #Load model
