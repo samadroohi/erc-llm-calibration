@@ -15,8 +15,8 @@ def template_meld_def(context, query, mode,tokenizer,emotion_label = None):
 
 def meld_verbalized_ndef(context, query, tokenizer):
     system_prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
-    Your task is to analyze the context of a of a conversation and categorize the emotional state of 
-    the query utterance into one of the following categories: 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
     
     [neutral] 
     [surprise] 
@@ -29,9 +29,11 @@ def meld_verbalized_ndef(context, query, tokenizer):
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
 
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
 You always will respond with the most accurate emotional state of the query utterance. 
 
-Your response always is an emotion category without any explanations or notes on the output. 
+Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
 
 
 ####
@@ -44,7 +46,7 @@ Here are some examples:
     query utterance: [Monica]: I am sorry
 
     
-Output string:
+Output string: [sadness]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
@@ -61,7 +63,8 @@ Output string: [neutral]
 
 ####"""
 
-    user_prompt=f"""Remember that your response always is an emotion label without any explanations or notes. 
+    user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+ 
  
     context: {context} 
 

@@ -244,7 +244,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
-            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=10, pad_token_id=tokenizer.eos_token_id)
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=5, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
             #print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
             output = extract_label(response)
