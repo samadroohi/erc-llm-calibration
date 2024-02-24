@@ -6,10 +6,16 @@ from datasets import Dataset, DatasetDict
 #%%
 
 
-ds_pred_ndef_llama7b = load_from_disk("data/rawpredictions/Llama-7B-meld")
-ds_pred_ndef_llama13b = load_from_disk("data/rawpredictions/Llama-13B-meld")
-ds_pred_ndef_mistral= load_from_disk("data/rawpredictions/Mistral-7B-meld")
-ds_pred_ndef_zephyr = load_from_disk("data/rawpredictions/Zephyr-7B-meld")
+ds_pred_ndef_llama7b = load_from_disk("data/rawpredictions/non-definitve/Llama-7B-meld")
+ds_pred_ndef_llama13b = load_from_disk("data/rawpredictions/non-definitve/Llama-13B-meld")
+ds_pred_ndef_mistral= load_from_disk("data/rawpredictions/non-definitve/Mistral-7B-meld")
+ds_pred_ndef_zephyr = load_from_disk("data/rawpredictions/non-definitve/Zephyr-7B-meld")
+
+ds_pred_def_llama7b = load_from_disk("data/rawpredictions/definitve/Llama-7B-meld")
+ds_pred_def_llama13b = load_from_disk("data/rawpredictions/definitve/Llama-13B-meld")
+ds_pred_def_mistral= load_from_disk("data/rawpredictions/definitve/Mistral-7B-meld")
+ds_pred_def_zephyr = load_from_disk("data/rawpredictions/definitve/Zephyr-7B-meld")
+
 
 # %%
 #remove none-value instances
@@ -27,4 +33,9 @@ f_score = get_accuracy_scores(ds_pred_ndef_zephyr)
 f_score = get_accuracy_scores(ds_pred_ndef_mistral)
 f_score = get_accuracy_scores(ds_pred_ndef_llama13b)
 f_score = get_accuracy_scores(ds_pred_ndef_llama7b)
+# %%
+f_score = get_accuracy_scores(ds_pred_def_zephyr)
+f_score = get_accuracy_scores(ds_pred_def_mistral)
+f_score = get_accuracy_scores(ds_pred_def_llama13b)
+f_score = get_accuracy_scores(ds_pred_def_llama7b)
 # %%
