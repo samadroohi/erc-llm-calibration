@@ -255,10 +255,10 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
             outputs['prediction'].append(output)
             #outputs['confidence'].append(output[2])
-            #if i %100 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                     outputs['prediction'][i])
 
       
