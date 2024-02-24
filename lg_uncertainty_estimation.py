@@ -447,7 +447,11 @@ _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+<<<<<<< HEAD
+model_index = 1
+=======
 model_index = 0
+>>>>>>> 1c0c37c6c625cf05d70877a8ea3dd92f89e1e986
 model_name = models[model_index]
 model_template = model_templates[model_index]
 
