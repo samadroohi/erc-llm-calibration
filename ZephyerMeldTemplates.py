@@ -88,13 +88,20 @@ def meld_verbalized_def(context, query, tokenizer):
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral] 
-    [surprise] 
-    [fear] 
-    [sadness] 
-    [joy] 
-    [disgust] 
-    [anger]
+    [neutral]: A state of emotional balance with no strong emotions present, marked by calmness and an even-tempered psychological stance.
+
+    [surprise]: A brief, intense emotional response to unexpected events, ranging from mild astonishment to profound shock, which shifts attention towards new stimuli.
+
+    [fear]: An emotion triggered by perceived threats, characterized by a fight-or-flight response, heightened vigilance, and readiness to act.
+
+    [sadness]: An emotional state arising from loss, disappointment, or reflection, associated with decreased energy and motivation, leading to introspection.
+
+    [joy]: A positive state reflecting happiness, contentment, or euphoria, often resulting from success or fulfilling experiences, enhancing well-being and social bonds.
+
+    [disgust]: An emotional reaction to offensive, repulsive, or harmful stimuli, acting as a protective mechanism to avoid danger or contamination.
+
+    [anger]: An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
+
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
