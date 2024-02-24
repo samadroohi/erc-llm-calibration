@@ -130,7 +130,9 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 Output string: [neutral]
 
-####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) from the potential emotional states: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'.
+ Do not provide any explanations or notes on your prediction. 
+ Remember that if you are uncertain among two or more emotions, you should always choose the most accurate one.
  
  
     context: {context} 
