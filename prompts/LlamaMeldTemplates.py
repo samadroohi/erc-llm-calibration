@@ -97,7 +97,7 @@ If the query utterance does not carry any clear emotion, the output is: [neutral
 
 Second, you always provide your confidence on your prediction as an integer number between 0 and 100, where 0 indicates that you are completly uncertain about your prediction and 100 indicates that you are highly certain about that prediction. 
 
-You always provide the output in a JSON format, with your "prediction" and your "confidence" values, without any extra explanation.
+You always provide the output in a JSON format, with your "prediction" and your "confidence" on that prediction, without any extra explanation.
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
@@ -111,10 +111,11 @@ Here is an examples:
 
     
 Output JSON string: 
-    ***{
+    
+    {
     "prediction": "sadness",
     "confidence": 85
-    }***
+    }
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
@@ -126,13 +127,14 @@ Here is another example of how an emotion recognition in conversation assistant 
     query utterance: [Chandler]: That I did. That I did.
 
 Output JSON string:
-    ***{
+    
+    {
     "prediction": "neutral",
     "confidence": 95
-    }***
+    }
 
 
-####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence using a JSON string fromat including your "prediction" and your "confidence" values, without any extra explanation.
+####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
 
@@ -257,10 +259,11 @@ Here is an examples:
 
     
 Output JSON string: 
-    ***{
+    
+    {
     "prediction": "sadness",
     "confidence": 85
-    }***
+    }
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
@@ -272,10 +275,11 @@ Here is another example of how an emotion recognition in conversation assistant 
     query utterance: [Chandler]: That I did. That I did.
 
 Output JSON string:
-    ***{
+    
+    {
     "prediction": "neutral",
     "confidence": 95
-    }***
+    }
 
 
 ####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence using a JSON string fromat including your "prediction" and your "confidence" values, without any extra explanation.
