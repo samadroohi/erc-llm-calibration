@@ -254,7 +254,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
-            #print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
+            print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
             if stage_of_verbalization == "zero":
                 output = extract_label(response)
             elif stage_of_verbalization == "first":
@@ -274,10 +274,10 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             else:
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
-            if i %100 == 1:
+            #if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                 outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
 
 
@@ -447,11 +447,7 @@ _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
-<<<<<<< HEAD
 model_index = 1
-=======
-model_index = 0
->>>>>>> 1c0c37c6c625cf05d70877a8ea3dd92f89e1e986
 model_name = models[model_index]
 model_template = model_templates[model_index]
 
