@@ -447,7 +447,13 @@ _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+<<<<<<< HEAD
+
 model_index = 1
+
+=======
+model_index = 1
+>>>>>>> 11d250299f8eeb2f98c37943a214bc0c6050f726
 model_name = models[model_index]
 model_template = model_templates[model_index]
 
@@ -468,14 +474,14 @@ modes = ["verbalized", "logit-based", "P(True)"]
 mode = modes[0]
 stage_of_verbalization = None
 if mode == "verbalized":
-    stage_of_verbalization = "first" #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = "zero" #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "P(True)":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
     assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 
 template_types = ["non-definitive", "definitive"]
-template_type = template_types[0]
+template_type = template_types[1]
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
