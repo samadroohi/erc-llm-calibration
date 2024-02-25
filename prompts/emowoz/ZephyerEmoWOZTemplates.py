@@ -9,37 +9,44 @@ def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stag
 
 def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     if stage_of_verbalization  == "zero":
-        prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
+        system_prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral] 
-    [surprise] 
-    [fear] 
-    [sadness] 
-    [joy] 
-    [disgust] 
-    [anger]
+    [neutral]: A state of emotional balance with no strong emotions present, marked by calmness and an even-tempered psychological stance.
+
+    [surprise]: A brief, intense emotional response to unexpected events, ranging from mild astonishment to profound shock, which shifts attention towards new stimuli.
+
+    [fear]: An emotion triggered by perceived threats, characterized by a fight-or-flight response, heightened vigilance, and readiness to act.
+
+    [sadness]: An emotional state arising from loss, disappointment, or reflection, associated with decreased energy and motivation, leading to introspection.
+
+    [joy]: A positive state reflecting happiness, contentment, or euphoria, often resulting from success or fulfilling experiences, enhancing well-being and social bonds.
+
+    [disgust]: An emotional reaction to offensive, repulsive, or harmful stimuli, acting as a protective mechanism to avoid danger or contamination.
+
+    [anger]: An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
 
 
-If the Query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
 
-You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
+You always will respond with the most accurate emotional state of the query utterance. 
+
+Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
 
 
 ####
-Here are some examples:
+Here is an examples:
 
-    
     context: [Monica]: You never knew she was a lesbian? [surprise]
             [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
     
     query utterance: [Monica]: I am sorry
 
     
-Category: [sadness]
+Output string: [sadness]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
@@ -51,21 +58,24 @@ Here is another example of how an emotion recognition in conversation assistant 
     query utterance: [Chandler]: That I did. That I did.
 
 
-Category: [neutral]
+Output string: [neutral]
 
-Remember that you will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
 
-####
-<<<
+####"""
+
+        user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+ 
+ 
     context: {context} 
 
     query utterance: {query}
 
-
-Category:>>>"""
-
+    
+Output string:
+""" 
+    
     elif stage_of_verbalization == "first":
-        prompt = """You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
+        system_prompt = """You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
     You have two following tasks:
      
     First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
@@ -86,11 +96,10 @@ Second, you always provide your confidence on your prediction as an integer numb
 
 You always provide the output in a JSON format, with your "prediction" and your "confidence" on that prediction, without any extra explanation.
 
-Here is an example of how an emotion recognition in conversation assistant should work: 
+Here is an example of how an emotion recognition in conversation assistant should work:        
 
 ####
-Here is an example:
-
+Here is an examples:
     
     context: [Monica]: You never knew she was a lesbian? [surprise]
             [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
@@ -99,10 +108,10 @@ Here is an example:
 
     
 Output JSON string: 
-
+    
     {
-        "prediction": "sadness",
-        "confidence": 85
+    "prediction": "sadness",
+    "confidence": 85
     }
 
 
@@ -117,30 +126,30 @@ Here is another example of how an emotion recognition in conversation assistant 
 Output JSON string:
     
     {
-        "prediction": "neutral",
-        "confidence": 95
+    "prediction": "neutral",
+    "confidence": 95
     }
 
 
-####""" +f"""
+####"""
 
-<<<Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
+    user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
 
-What is your prediction and confidence on that prediction for the following query utterance?
 
     context: {context} 
 
     query utterance: {query}
 
 Output JSON string:
->>>"""
+
+"""
     
+    messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
+
     return prompt
-
-
 
 def meld_ptrue(context, query, tokenizer,emotion_label):
     pass
-

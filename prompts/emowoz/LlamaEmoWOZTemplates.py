@@ -1,29 +1,29 @@
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_emowoz(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
-        prompt = meld_ptrue(context, query,tokenizer, emotion_label )
+        prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = emowoz_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
+def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     if stage_of_verbalization  == "zero":
 
-        prompt= "<s>" + B_INST +B_SYS+ """You are helpful, respectful and honest emotion recognition in conversation assistant. 
-    Your task is to analyze the context of a conversation and categorize the emotional state of 
+        prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation between a human and a customer support service agent and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral] 
-    [surprise] 
-    [fear] 
-    [sadness] 
-    [joy] 
-    [disgust] 
-    [anger]
+        [neutral]
+        [disappointed]
+        [dissatisfied] 
+        [apologetic]
+        [abusive]
+        [excited] 
+        [satisfied] 
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
@@ -40,24 +40,27 @@ Here is an example of how an emotion recognition in conversation assistant shoul
 ####
 Here is an examples:
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
-Output string: [sadness]
+Output string: [neutral]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
-Output string: [neutral]
+
+Output string: [satisfied]
 
 ####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
  
@@ -70,18 +73,18 @@ Output string: [neutral]
         
     elif stage_of_verbalization == "first":
         prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
-    You have two following tasks:
+You have two following tasks:
      
-    First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
+First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral" 
-    "surprise" 
-    "fear" 
-    "sadness" 
-    "joy" 
-    "disgust" 
-    "anger"
+    "neutral"
+    "disappointed"
+    "dissatisfied"
+    "apologetic"
+    "abusive"
+    "excited" 
+    "satisfied" 
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
@@ -90,21 +93,22 @@ Second, you always provide your confidence on your prediction as an integer numb
 
 You always provide the output in a JSON format, with your "prediction" and your "confidence" on that prediction, without any extra explanation.
 
-Here is an example of how an emotion recognition in conversation assistant should work:        
+Here is an example of how an uncertainty-aware emotion recognition in conversation assistant should work:        
 
 ####
 Here is an examples:
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
 Output JSON string: 
     
     {
-    "prediction": "sadness",
+    "prediction": "neutral",
     "confidence": 85
     }
 
@@ -112,16 +116,17 @@ Output JSON string:
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
 Output JSON string:
     
     {
-    "prediction": "neutral",
-    "confidence": 95
+    "prediction": "satisfied",
+    "confidence": 90
     }
 
 
@@ -135,9 +140,11 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
     query utterance: {query}
 
 """ + E_INST+ "Output JSON string:" 
+        
 
 
     elif stage_of_verbalization == "second_stage":
+         # use data from P(True)
         pass
 
     return prompt
@@ -146,7 +153,7 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 
 
-def meld_ptrue(context, query, tokenizer,emotion_label):
+def emowoz_ptrue(context, query, tokenizer,emotion_label):
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
