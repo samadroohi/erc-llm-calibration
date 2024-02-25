@@ -74,16 +74,13 @@ def extract_answer(batch):
 
         
         
-def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer,template_type=None,inserted_emotion=None, stage_of_verbalization=None ):
+def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer, inserted_emotion=None, stage_of_verbalization=None ):
     
     prompts = list()
     if dataset_name == 'emowoz':
             template = model_template.template_emowoz
     elif dataset_name == 'meld':
-        if template_type == "non-definitive":  
-            template = model_template.template_meld_ndef
-        elif template_type == "definitive":
-            template = model_template.template_meld_def
+        template = model_template.template_meld
     elif dataset_name == 'dailydialog':
         template = model_template.template_dailydialog
     for i in range (len(input_df['context'])):
@@ -94,7 +91,6 @@ def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer,templa
             prompt = template(context, query, mode,tokenizer, emotion_label=inserted_emotion[i])
         elif mode == "verbalized":
             prompt = template(context, query, mode,tokenizer=tokenizer, stage_of_verbalization=stage_of_verbalization)
-
         else:
             pass
         prompts.append(prompt)
@@ -233,7 +229,7 @@ def extract_lable_confidence(output_str):
     return (emotion, confidence)  
 
 #%%
-def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, template_type=None, stage_of_verbalization=None):
+def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "zero":
         num_new_tokens = 10
     else:
@@ -244,7 +240,6 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
         prompts_dataset = prepare_prompt(proccessed_data, dataset_name, mode, 
                                          model_template,
                                          tokenizer=tokenizer,
-                                         template_type= template_type, 
                                          stage_of_verbalization = stage_of_verbalization)
         outputs['prediction']= []
         outputs['confidence'] = []
@@ -254,7 +249,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
-            print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
+            #print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
             if stage_of_verbalization == "zero":
                 output = extract_label(response)
             elif stage_of_verbalization == "first":
@@ -274,10 +269,10 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             else:
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
-            #if i %100 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                 outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
 
 
@@ -322,8 +317,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
         elif assess_type == "random-assessment":
             inserted_emotion = np.random.choice(list(idx2emotion.values()), len(proccessed_data['context']))
         prompts_dataset = prepare_prompt(proccessed_data, dataset_name,mode,
-                                         tokenizer=tokenizer,
-                                         template_type= template_type, 
+                                         tokenizer=tokenizer, 
                                          inserted_emotion = inserted_emotion 
                                          )
         outputs['emotion_inserted']=[]
@@ -447,13 +441,8 @@ _ = load_dotenv(find_dotenv())
 datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
-<<<<<<< HEAD
 
-model_index = 1
-
-=======
-model_index = 1
->>>>>>> 11d250299f8eeb2f98c37943a214bc0c6050f726
+model_index = 2
 model_name = models[model_index]
 model_template = model_templates[model_index]
 
@@ -472,22 +461,21 @@ emotion_tokens = ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "a
 
 modes = ["verbalized", "logit-based", "P(True)"]
 mode = modes[0]
+stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
-    stage_of_verbalization = "zero" #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = stages[1] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "P(True)":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
     assess_type = assess_types[0] #self-assessment is for computing P(True) on the results generated from the verbalization method
 
-template_types = ["non-definitive", "definitive"]
-template_type = template_types[1]
 #%%
 for dataset_name in datasets:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
     context_length = 2 # the maximum number of utterances to be considered for the context
     proccessed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, mode,assess_type)
-    new_datapath = f'data/ed_{mode}_{stage_of_verbalization}_{assess_type}_{template_type}_uncertainty_{dataset_name}_{model_name}'
+    new_datapath = f'data/ed_{mode}_{stage_of_verbalization}_{assess_type}_uncertainty_{dataset_name}_{model_name}'
     #print(proccessed_data['train'].head(1))
     response = None
     splits = ['train', 'validation', 'test']
@@ -499,7 +487,6 @@ for dataset_name in datasets:
                                            mode, dataset_name, model_template,
                                            error_flag,emotion_tokens,idx2emotion, 
                                              assess_type=assess_type,
-                                             template_type= template_type, 
                                              stage_of_verbalization = stage_of_verbalization)
             new_df = pd.DataFrame(outputs)
             ds_path = f"{new_datapath}/{split}"
