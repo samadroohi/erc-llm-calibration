@@ -274,7 +274,7 @@ def generate_responses(proccessed_data, split,model,tokenizer,device, mode,  dat
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                 outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
-
+            torch.cuda.empty_cache()
 
       
                 
@@ -442,7 +442,7 @@ datasets = ['meld'] #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [lmtemplate, lmtemplate, mmtemplate,zmtemplate] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-model_index = 2
+model_index = 3
 model_name = models[model_index]
 model_template = model_templates[model_index]
 
