@@ -12,9 +12,12 @@ ds_pred_ndef_mistral= load_from_disk("data/rawpredictions/non-definitive/Mistral
 ds_pred_ndef_zephyr = load_from_disk("data/rawpredictions/non-definitive/Zephyr-7B-meld")
 
 ds_pred_def_llama7b = load_from_disk("data/rawpredictions/definitive/Llama-7B-meld")
-ds_pred_def_llama13b = load_from_disk("data/rawpredictions/definitive/Llama-13B-meld")
+ds_pred_def_llama13b = load_from_disk("data/rawpredictions/definitive/Llama-13B-meld/")
 ds_pred_def_mistral= load_from_disk("data/rawpredictions/definitive/Mistral-7B-meld")
 ds_pred_def_zephyr = load_from_disk("data/rawpredictions/definitive/Zephyr-7B-meld")
+
+#%%
+ds_pred_def_llama13b['train'][:10]
 
 
 # %%
