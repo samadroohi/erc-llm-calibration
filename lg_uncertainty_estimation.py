@@ -277,8 +277,13 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
             #if i %100 == 1:
+<<<<<<< HEAD
             #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC", error_flag)
+=======
+            #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
+            #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
+>>>>>>> e6b81fa7309032450fecf87d9d2056d14fd058c5
             print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                 outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
