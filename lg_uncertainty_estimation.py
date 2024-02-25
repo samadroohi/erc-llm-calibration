@@ -276,15 +276,8 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             else:
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
-            #if i %100 == 1:
-<<<<<<< HEAD
-            #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
-            #send_slack_notification(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC", error_flag)
-=======
-            #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
-            #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
->>>>>>> e6b81fa7309032450fecf87d9d2056d14fd058c5
-            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+            if i %100 == 1:
+                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                 outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
 
@@ -479,7 +472,7 @@ dev0 = torch.device("cuda:0")
 dev1 = torch.device("cuda:1")
 device = dev1 if torch.cuda.device_count() > 1 else dev0
 emotion_tokens = [["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger", "dis", "sad", "Ang", "Ne", "Jo", "S", "Dis", "Sur", "F"],
-                  ["neutral", "fearful/sad/disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"]] #for meld, emowoz and dailydialog
+                  ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"]] #for meld, emowoz and dailydialog
 #emotion_tokens_13b = 
 
 

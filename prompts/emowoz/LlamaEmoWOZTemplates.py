@@ -17,16 +17,22 @@ def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     Your task is to analyze the context of a conversation between a human and a customer support service agent and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-        [neutral]
-        [disappointed]
-        [dissatisfied] 
-        [apologetic]
-        [abusive]
-        [excited] 
-        [satisfied] 
+        [neutral]: A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        [disappointed]: A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        [dissatisfied]: A state of discontentment or unhappiness with an outcome, often when expectations are not met.
+
+        [apologetic]: A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        [abusive]: An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        [excited]: A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        [satisfie]: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
 
 
-If the query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any emotion, the output is: [neutral]
 
 If you are uncertain among two or more emotions, you should always choose the most accurate one.
 
@@ -78,13 +84,20 @@ You have two following tasks:
 First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral"
-    "disappointed"
-    "dissatisfied"
-    "apologetic"
-    "abusive"
-    "excited" 
-    "satisfied" 
+        "neutral": A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        "disappointed": A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        "dissatisfied": A state of discontentment or unhappiness with an outcome, often when expectations are not met.
+
+        "apologetic": A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        "abusive": An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        "excited": A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        "satisfie": A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
