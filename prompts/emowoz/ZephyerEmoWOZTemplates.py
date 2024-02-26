@@ -28,37 +28,37 @@ def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     [anger]: An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
 
 
-If the query utterance does not carry any clear emotion, the output is: [neutral]
+If the Query utterance does not carry any clear emotion, the output is: [neutral]
 
-If you are uncertain among two or more emotions, you should always choose the most accurate one.
+You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
 
-You always will respond with the most accurate emotional state of the query utterance. 
-
-Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
+You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
 
 
 ####
 Here is an examples:
 
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
-Output string: [sadness]
+Output string: [neutral]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
 
-Output string: [neutral]
+Output string: [satisfied]
 
 
 ####"""
@@ -81,13 +81,21 @@ Output string:
     First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral" 
-    "surprise" 
-    "fear" 
-    "sadness" 
-    "joy" 
-    "disgust" 
-    "anger"
+        "neutral": A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        "disappointed": A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        "dissatisfied": A state of discontentment or unhappiness or sadness with an outcome, often when expectations are not met.
+
+        "apologetic": A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        "abusive": An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        "excited": A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        "satisfie": A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
+
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
@@ -99,35 +107,38 @@ You always provide the output in a JSON format, with your "prediction" and your 
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
 ####
-Here is an examples:
+Here is an example:
+
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
 Output JSON string: 
-    
+
     {
-    "prediction": "sadness",
+    "prediction": "neutral",
     "confidence": 85
     }
 
 
-Here is another example of how an emotion recognition in conversation assistant should work:
+Here is another example of how an uncertainty-aware emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
 Output JSON string:
     
     {
-    "prediction": "neutral",
-    "confidence": 95
+    "prediction": "satisfied",
+    "confidence": 90
     }
 
 
@@ -136,6 +147,8 @@ Output JSON string:
     user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
+
+What is your prediction and confidence on that prediction for the following query utterance?
 
 
     context: {context} 

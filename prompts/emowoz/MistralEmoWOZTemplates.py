@@ -1,13 +1,13 @@
 def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
-        prompt = meld_ptrue(context, query,tokenizer, emotion_label )
+        prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = emowoz_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
+def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     if stage_of_verbalization  == "zero":
         prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
@@ -123,7 +123,7 @@ Output JSON string:
     }
 
 
-Here is another example of how an emotion recognition in conversation assistant should work:
+Here is another example of how an uncertainty-aware emotion recognition in conversation assistant should work:
 
 
     context:[human]: do you have a 2 star in the east ? [dissatisfied]
