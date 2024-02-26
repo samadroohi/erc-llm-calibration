@@ -2,7 +2,7 @@ def template_emowoz(context, query, mode,tokenizer=None,emotion_label = None, st
     if mode == "P(True)":
         prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = emowozverbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = emowoz_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
 
 
