@@ -279,15 +279,14 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
 
-            if i %100 == 1:
+            if i %50 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                       outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
 
-      
-                
+       
     elif mode == "logit-based":
         prompts_dataset = prepare_prompt(processed_data, dataset_name, mode)
         outputs['prediction_label']=[]
