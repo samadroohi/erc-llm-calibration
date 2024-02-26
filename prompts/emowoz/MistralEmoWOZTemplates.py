@@ -13,13 +13,20 @@ def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral] 
-    [surprise] 
-    [fear] 
-    [sadness] 
-    [joy] 
-    [disgust] 
-    [anger]
+        [neutral]: A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        [disappointed]: A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        [dissatisfied]: A state of discontentment or unhappiness or sadness with an outcome, often when expectations are not met.
+
+        [apologetic]: A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        [abusive]: An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        [excited]: A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        [satisfie]: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
 
 
 If the Query utterance does not carry any clear emotion, the output is: [neutral]
@@ -33,25 +40,27 @@ You will only respond with the category. Do not include the word "Category". Do 
 Here are some examples:
 
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
-Category: [sadness]
+Output string: [neutral]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
 
-Category: [neutral]
+Output string: [satisfied]
 
 Remember that you will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
 
@@ -71,13 +80,20 @@ Category:>>>"""
     First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral" 
-    "surprise" 
-    "fear" 
-    "sadness" 
-    "joy" 
-    "disgust" 
-    "anger"
+        "neutral": A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        "disappointed": A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        "dissatisfied": A state of discontentment or unhappiness or sadness with an outcome, often when expectations are not met.
+
+        "apologetic": A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        "abusive": An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        "excited": A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        "satisfie": A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
@@ -92,33 +108,35 @@ Here is an example of how an emotion recognition in conversation assistant shoul
 Here is an example:
 
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
-    
-    query utterance: [Monica]: I am sorry
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
     
 Output JSON string: 
 
     {
-        "prediction": "sadness",
-        "confidence": 85
+    "prediction": "neutral",
+    "confidence": 85
     }
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    query utterance: [Chandler]: That I did. That I did.
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
 Output JSON string:
     
     {
-        "prediction": "neutral",
-        "confidence": 95
+    "prediction": "satisfied",
+    "confidence": 90
     }
 
 
@@ -142,6 +160,6 @@ Output JSON string:
 
 
 
-def meld_ptrue(context, query, tokenizer,emotion_label):
+def emowoz_ptrue(context, query, tokenizer,emotion_label):
     pass
 
