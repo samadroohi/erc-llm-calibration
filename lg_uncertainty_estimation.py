@@ -494,7 +494,7 @@ if mode == "P(True)":
 #%%
 for dataset_name in [datasets[dataset_index]]:
     send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
-    context_length = 2 # the maximum number of utterances to be considered for the context
+    context_length = 2   # the maximum number of utterances to be considered for the context
     processed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, mode,assess_type)
     new_datapath = f'data/ed_{mode}_{stage_of_verbalization}_{assess_type}_uncertainty_{dataset_name}_{model_name}'
     #print(processed_data['train'].head(1))

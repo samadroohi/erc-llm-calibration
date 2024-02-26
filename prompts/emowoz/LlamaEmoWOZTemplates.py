@@ -153,8 +153,6 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
     query utterance: {query}
 
 """ + E_INST+ "Output JSON string:" 
-        
-
 
     elif stage_of_verbalization == "second_stage":
          # use data from P(True)
