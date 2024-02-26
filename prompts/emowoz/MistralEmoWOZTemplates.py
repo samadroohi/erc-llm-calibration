@@ -60,18 +60,19 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 Output string: [satisfied]
 
-Remember that you always respond with just the most accurate emotion
-        label (single lable) inside square brackets, without any explanations or notes. 
-        If you are uncertain among two or more emotions, you should always choose the most accurate one.
-
 ####
 <<<
+    Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: [neutral], [disappointed], [dissatisfied], [apologetic], [abusive], [excited], [satisfie], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
     context: {context} 
 
     query utterance: {query}
 
 
-Category:>>>"""
+Output string:>>>"""
 
     elif stage_of_verbalization == "first":
         prompt = """You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 

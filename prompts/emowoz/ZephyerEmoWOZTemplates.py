@@ -13,30 +13,30 @@ def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral]: A state of emotional balance with no strong emotions present, marked by calmness and an even-tempered psychological stance.
+        [neutral]: A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
 
-    [surprise]: A brief, intense emotional response to unexpected events, ranging from mild astonishment to profound shock, which shifts attention towards new stimuli.
+        [disappointed]: A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
 
-    [fear]: An emotion triggered by perceived threats, characterized by a fight-or-flight response, heightened vigilance, and readiness to act.
+        [dissatisfied]: A state of discontentment or unhappiness or sadness with an outcome, often when expectations are not met.
 
-    [sadness]: An emotional state arising from loss, disappointment, or reflection, associated with decreased energy and motivation, leading to introspection.
+        [apologetic]: A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
 
-    [joy]: A positive state reflecting happiness, contentment, or euphoria, often resulting from success or fulfilling experiences, enhancing well-being and social bonds.
+        [abusive]: An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
 
-    [disgust]: An emotional reaction to offensive, repulsive, or harmful stimuli, acting as a protective mechanism to avoid danger or contamination.
+        [excited]: A state of heightened emotional arousal, enthusiasm, or eagerness about something.
 
-    [anger]: An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
+        [satisfie]: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
 
 
-If the Query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
+You always just output the accurate emotional state of the query utterance inside square brackets without any explanation. 
 
-You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
+
 
 
 ####
-Here is an examples:
+Here is an example of how an emotion recognition in conversation assistant should work:        
 
     context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
                 [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
@@ -63,8 +63,11 @@ Output string: [satisfied]
 
 ####"""
 
-        user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
- 
+        user_prompt=f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: [neutral], [disappointed], [dissatisfied], [apologetic], [abusive], [excited], [satisfie], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
  
     context: {context} 
 
