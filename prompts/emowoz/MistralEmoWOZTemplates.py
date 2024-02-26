@@ -1,4 +1,4 @@
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_emowoz(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
         prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
