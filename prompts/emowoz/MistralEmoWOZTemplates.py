@@ -67,6 +67,7 @@ Output string: [satisfied]
     If you are uncertain among two or more emotions, you should always choose the most accurate one.
     
     what is your prediction for the following query utterance?
+    
     context: {context} 
 
     query utterance: {query}
