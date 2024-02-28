@@ -143,7 +143,7 @@ Output JSON string:
     }
 
 
-####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
+####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
 

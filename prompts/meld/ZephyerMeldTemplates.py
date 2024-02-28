@@ -63,8 +63,11 @@ Output string: [neutral]
 
 ####"""
 
-        user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
- 
+        user_prompt=f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables:  [neutral], [surprise], [fear], [sadness], [joy], [disgust], [anger], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
  
     context: {context} 
 
