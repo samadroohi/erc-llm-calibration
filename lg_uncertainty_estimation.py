@@ -237,7 +237,11 @@ def extract_lable_confidence(output_str):
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "zero":
+<<<<<<< HEAD
         num_new_tokens = 8
+=======
+        num_new_tokens = 7
+>>>>>>> e70af26db997cdf093d9ccbd35785cc446ade5f9
     else:
         num_new_tokens = 100
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
@@ -279,7 +283,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
 
-            if i %10 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
                 print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
@@ -462,7 +466,7 @@ models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mis
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
                    [letemplate, letemplate, metemplate,zetemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-model_index = 3
+model_index = 0
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
@@ -485,7 +489,7 @@ mode = modes[0]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
-    stage_of_verbalization = stages[0] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = stages[1] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "P(True)":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
