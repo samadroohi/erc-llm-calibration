@@ -237,7 +237,7 @@ def extract_lable_confidence(output_str):
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "zero":
-        num_new_tokens = 15
+        num_new_tokens = 8
     else:
         num_new_tokens = 100
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
