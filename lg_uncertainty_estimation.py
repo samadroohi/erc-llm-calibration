@@ -515,6 +515,7 @@ for dataset_name in [datasets[dataset_index]]:
             send_slack_notification( f"Uncertainty {mode} completed for split {dataset_name}:{split}", error_flag)
         message= merge_datasets(new_datapath)
         send_slack_notification(f"Uncertainty {mode} completed successfully: {message}", error_flag)
+        torch.cuda.empty_cache()
     except Exception as e:
         send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 
