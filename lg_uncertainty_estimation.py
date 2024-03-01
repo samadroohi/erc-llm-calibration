@@ -237,7 +237,11 @@ def extract_lable_confidence(output_str):
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "zero":
+<<<<<<< HEAD
+        num_new_tokens = 8
+=======
         num_new_tokens = 7
+>>>>>>> e70af26db997cdf093d9ccbd35785cc446ade5f9
     else:
         num_new_tokens = 100
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
@@ -515,6 +519,7 @@ for dataset_name in [datasets[dataset_index]]:
             send_slack_notification( f"Uncertainty {mode} completed for split {dataset_name}:{split}", error_flag)
         message= merge_datasets(new_datapath)
         send_slack_notification(f"Uncertainty {mode} completed successfully: {message}", error_flag)
+        torch.cuda.empty_cache()
     except Exception as e:
         send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 
