@@ -462,7 +462,7 @@ models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mis
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
                    [letemplate, letemplate, metemplate,zetemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-model_index = 0
+model_index =1
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
