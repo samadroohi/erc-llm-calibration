@@ -503,7 +503,11 @@ model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate],
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
+<<<<<<< HEAD
 model_index =0
+=======
+model_index =1
+>>>>>>> 26b4f8a29d30311643625e5af3d9fc53a342d976
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
@@ -557,6 +561,7 @@ for dataset_name in [datasets[dataset_index]]:
             send_slack_notification( f"Uncertainty {mode} completed for split {dataset_name}:{split}", error_flag)
         message= merge_datasets(new_datapath)
         send_slack_notification(f"Uncertainty {mode} completed successfully: {message}", error_flag)
+        torch.cuda.empty_cache()
     except Exception as e:
         send_slack_notification(f"UERC failed with error: {e}", error_flag)  
 
