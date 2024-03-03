@@ -237,11 +237,7 @@ def extract_lable_confidence(output_str):
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "zero":
-<<<<<<< HEAD
         num_new_tokens = 8
-=======
-        num_new_tokens = 7
->>>>>>> e70af26db997cdf093d9ccbd35785cc446ade5f9
     else:
         num_new_tokens = 100
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
@@ -466,7 +462,7 @@ models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mis
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
                    [letemplate, letemplate, metemplate,zetemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-model_index =1
+model_index =
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
