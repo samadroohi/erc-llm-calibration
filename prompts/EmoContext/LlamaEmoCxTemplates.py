@@ -93,8 +93,6 @@ Here is an example of how an uncertainty-aware emotion recognition in conversati
 ####
 Here is an examples:
     
-    Here is an examples:
-    
     context: [Speaker1]: Don't worry  I'm girl , 
             [Speake2]: hmm how do I know if you are
     
@@ -131,6 +129,8 @@ Output JSON string:
 Remember that you redict [others], only when the query utterance does not carry any emotion.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
+
+What is your prediction and confidence on that prediction for the following query utterance?
 
 
     context: {context} 
