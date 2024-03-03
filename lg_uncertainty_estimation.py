@@ -8,7 +8,7 @@ import os
 from dotenv import load_dotenv, find_dotenv
 import numpy as np
 import pandas as pd
-from datapreprocessing import load_ds, group_dialogues, extract_context_meld, extract_context_emowoz, extract_context_dailydialog
+from datapreprocessing import load_ds, group_dialogues, extract_context_meld, extract_context_emowoz, extract_context_dailydialog, extract_context_Emocx
 from huggingface_hub import login
 import json
 import re
@@ -19,7 +19,11 @@ from prompts.meld import MistralMeldTemplates as mmtemplate
 from prompts.meld import ZephyerMeldTemplates as zmtemplate
 from prompts.emowoz import LlamaEmoWOZTemplates as letemplate
 from prompts.emowoz import MistralEmoWOZTemplates as metemplate
-from prompts.emowoz import ZephyerEmoWOZTemplates as zetemplate 
+from prompts.emowoz import ZephyerEmoWOZTemplates as zetemplate
+from prompts.EmoContext import LlamaEmoCxTemplates as lcxtemplate
+from prompts.EmoContext import MistralEmoCxTemplates as mcxtemplate
+from prompts.EmoContext import ZephyerEmoCxTemplates as zcxtemplate
+ 
 
 from utils import *
 torch.cuda.empty_cache()
@@ -87,6 +91,8 @@ def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer, inser
         template = model_template.template_meld
     elif dataset_name == 'dailydialog':
         template = model_template.template_dailydialog
+    elif dataset_name == 'emocx':
+        template = model_template.template_emocx
     for i in range (len(input_df['context'])):
         #print(f"input_df['context'][i]: {input_df['context'][i]}, input_df['query'][i]: {input_df['query'][i]}, input_df['emotion'][i]: {input_df['emotion'][i]}")
         context=input_df['context'][i] 
@@ -239,7 +245,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
     if stage_of_verbalization == "zero":
         num_new_tokens = 8
     else:
-        num_new_tokens = 100
+        num_new_tokens = 40
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
   
     if mode == 'verbalized':
@@ -444,6 +450,40 @@ def prepare_data(dataset_name, context_length, mode, assess_type):
         processed_data['train'] = extract_context_dailydialog(dataset['train'],context_length, idx2emotion)
         processed_data['test'] = extract_context_dailydialog(dataset['test'],context_length, idx2emotion)
         processed_data['validation'] = extract_context_dailydialog(dataset['validation'],context_length, idx2emotion)
+
+    elif dataset_name =='emocx':
+        
+        emotion_labels = ["others", "happy", "sad" , "angry"]
+        emotion2idx = {emo: i for i, emo in enumerate(emotion_labels)}
+        idx2emotion = {i: emo for i, emo in enumerate(emotion_labels)}
+        processed_data = {}
+        if mode == "verbalized":
+            emotion_labels = ["others", "happy", "sad" , "angry"]
+            emotion2idx = {emo: i for i, emo in enumerate(emotion_labels)}
+            idx2emotion = {i: emo for i, emo in enumerate(emotion_labels)}
+            processed_data = {}
+            df_train = pd.read_csv("./datasets/emocx/train.txt", sep = "\t")
+            df_dev = pd.read_csv("./datasets/emocx/dev.txt", sep = "\t")
+            #split dev to dev and test
+            df_test = df_dev.sample(frac=0.5, random_state=42)
+            df_val = df_dev.drop(df_test.index)
+            df_train = df_train.dropna()
+            df_test = df_test.dropna()
+            df_val = df_val.dropna()
+
+            #Convert to datasets
+            train_dataset = DatasetDict({"train": df_train})
+            val_dataset = DatasetDict({"validation": df_val})
+            test_dataset = DatasetDict({"test": df_test})
+            processed_data["train"] = extract_context_Emocx(train_dataset['train'])
+            processed_data["validation"] = extract_context_Emocx(val_dataset['validation'])
+            processed_data["test"] = extract_context_Emocx(test_dataset['test'])
+            
+        
+        elif mode == "P(True)":
+                pass
+
+
     return processed_data, emotion2idx, idx2emotion
 #%%
 
@@ -455,14 +495,19 @@ error_flag = False
 gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
-datasets = ['meld','emowoz', 'dailydialog']
-dataset_index = 1
+datasets = ['meld','emowoz', 'emocx', 'dailydialog']
+dataset_index = 2
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
-                   [letemplate, letemplate, metemplate,zetemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
+                   [letemplate, letemplate, metemplate,zetemplate],
+                   [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
+<<<<<<< HEAD
 model_index =
+=======
+model_index =0
+>>>>>>> 9226d2fc5b688a93d2ecc4b34964b0ca2c9f06a6
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
@@ -476,7 +521,8 @@ dev0 = torch.device("cuda:0")
 dev1 = torch.device("cuda:1")
 device = dev1 if torch.cuda.device_count() > 1 else dev0
 emotion_tokens = [["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger", "dis", "sad", "Ang", "Ne", "Jo", "S", "Dis", "Sur", "F"],
-                  ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"]] #for meld, emowoz and dailydialog
+                  ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"],
+                  ["others", "happy", "sad" , "angry"]] #for meld, emowoz and dailydialog
 #emotion_tokens_13b = 
 
 
@@ -485,7 +531,7 @@ mode = modes[0]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
-    stage_of_verbalization = stages[1] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = stages[0] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "P(True)":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
