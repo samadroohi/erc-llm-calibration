@@ -285,10 +285,10 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
 
-            #if i %100 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                       outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
 
@@ -503,11 +503,7 @@ model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate],
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-<<<<<<< HEAD
 model_index =0
-=======
-model_index =1
->>>>>>> 26b4f8a29d30311643625e5af3d9fc53a342d976
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
