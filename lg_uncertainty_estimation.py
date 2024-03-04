@@ -503,7 +503,11 @@ model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate],
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
+<<<<<<< HEAD
 model_index =1
+=======
+model_index =3
+>>>>>>> d94a13c273f16640cb150f515b98ef8cf361f904
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 

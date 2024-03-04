@@ -60,7 +60,7 @@ Output string: [angry]
 
 ####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. 
 
-Remember that you redict [others], only when the query utterance does not carry any emotion.
+Remember that you predict [others], only when the query utterance does not carry any emotion.
  
 
     context: {context} 
@@ -92,8 +92,6 @@ Here is an example of how an uncertainty-aware emotion recognition in conversati
 
 ####
 Here is an examples:
-    
-    Here is an examples:
     
     context: [Speaker1]: Don't worry  I'm girl , 
             [Speake2]: hmm how do I know if you are
@@ -128,9 +126,11 @@ Output JSON string:
 
 ####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
-Remember that you redict [others], only when the query utterance does not carry any emotion.
+Remember that you predict [others], only when the query utterance does not carry any emotion.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
+
+What is your prediction and confidence on that prediction for the following query utterance?
 
 
     context: {context} 
