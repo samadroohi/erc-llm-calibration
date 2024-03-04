@@ -1,13 +1,13 @@
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
-        prompt = meld_ptrue(context, query,tokenizer, emotion_label )
+        prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = emocx_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
+def emocx_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     if stage_of_verbalization  == "zero":
         system_prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
@@ -128,7 +128,7 @@ Output JSON string:
 
 ####"""
 
-    user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
+        user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
 Remember that you redict [others], only when the query utterance does not carry any emotion.
 
@@ -150,5 +150,5 @@ Output JSON string:
 
     return prompt
 
-def meld_ptrue(context, query, tokenizer,emotion_label):
+def emocx_ptrue(context, query, tokenizer,emotion_label):
     pass
