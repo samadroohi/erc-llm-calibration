@@ -1,120 +1,187 @@
 
 #%%
-from datasets import concatenate_datasets
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import numpy as np
-
-#%%
 from datasets import load_from_disk
-from sklearn.metrics import f1_score
 from datasets import Dataset, DatasetDict
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix
 #%%
 datasets = ['meld', 'emowoz', 'emocx']
 models = ['Llama-7B', 'Llama-13B', 'Mistral-7B', 'Zephyr-7B']
 
 data_folder = f"/home/samad/Desktop/ACII/data/"
 
+emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger"]
+, 'emowoz': ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"], 
+'emocx':["others", "happy", "sad" , "angry"]}
+
 #%%
 
 
 # %%
 #remove none-value instances
-def get_accuracy_scores(outputs_path, model_name, dataset_name):
-    output_dataset = load_from_disk(f"{outputs_path}{dataset_name}/first/{model_name}")
-    modified_dsets = {}
+def get_accuracy_scores( y_true,y_pred):
     f_scores ={}
-    for split_name in ['train', 'validation', 'test']:
-        # delete confidence column from dataset
-        if 'confidence' in output_dataset[split_name].features:
-            output_dataset[split_name] = output_dataset[split_name].remove_columns('confidence')
-        modified_dsets[split_name] = output_dataset[split_name].filter(lambda x: all(value is not None for value in x.values()))
-        f_scores[split_name] = f1_score(modified_dsets[split_name]['ground_truth'], modified_dsets[split_name]['prediction'], average='weighted')
-    print(f"model: {model_name}    fscore", f_scores)
+    f_score = f1_score(y_true, y_pred, average='weighted')
+    f_score_macro = f1_score(y_true, y_pred, average='macro')
+    precision = precision_score(y_true, y_pred, average='weighted')
+    recall = recall_score(y_true, y_pred, average='weighted')
+    accuracy = accuracy_score(y_true, y_pred)
+    f_scores['f1'] = f_score
+    f_scores['f1_macro'] = f_score_macro
+    f_scores['precision'] = precision
+    f_scores['recall'] = recall
+    f_scores['accuracy'] = accuracy
     return f_scores
-# %%
-for dataset in datasets:
-    if dataset == 'emowoz':
-        for model in models:
-            acc = get_accuracy_scores(data_folder, model, dataset)
-# %%
-acc = get_accuracy_scores(data_folder, 'Zephyr-7B', 'emowoz')
+#%%
+def plot_confusion_matrix(y_true, y_pred, labels):
+    
+    cm = confusion_matrix(y_true, y_pred)
+    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    plt.figure(figsize=(10, 10))
+    sns.heatmap(cm, annot=True, fmt=".2f", cmap='Blues', xticklabels=labels, yticklabels=labels)
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.show()
+
 # %%
 
 # Expected Calibration Error
-def merge_dataset_splits(output_dataset):
-    merged_dataset = concatenate_datasets([output_dataset['train'], output_dataset['validation'], output_dataset['test']])
-    return merged_dataset
+
 #%%
-def calculate_ece(confidences, predictions, true_labels, n_bins=10):
+
+from sklearn.preprocessing import OneHotEncoder
+
+def calculate_ece(y_true, y_pred, confidences, n_bins=10):
     """
-    Calculate the Expected Calibration Error (ECE) for multiclass classification.
+    Calculate the Expected Calibration Error (ECE) for multiclass classification
+    with confidence values only for the predicted class.
     
     Parameters:
-    - confidences: array of confidence scores for the predicted class.
-    - predictions: array of predicted class labels.
-    - true_labels: array of true class labels.
-    - n_bins: number of bins to use for calibration error calculation.
+    - y_true: Array of true labels.
+    - y_pred: Array of predicted labels.
+    - confidences: Array of confidence values for the predicted labels.
+    - n_bins: Number of bins to divide the confidence scores.
     
     Returns:
-    - ece: the Expected Calibration Error.
+    - ece: The Expected Calibration Error.
     """
-    bin_limits = np.linspace(0, 1, n_bins + 1)
+    bin_limits = np.linspace(0, 1, n_bins+1)
     bin_lowers = bin_limits[:-1]
     bin_uppers = bin_limits[1:]
-
-    ece = 0.0
+    
+    ece = 0.0  # Expected Calibration Error
     for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
-         # Check the type of bin_upper
-        # Find predictions in this bin
-        in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
-        
-        if np.sum(in_bin) == 0:
+        # Indices of samples whose confidence fall into the current bin
+        in_bin = np.where((confidences > bin_lower) & (confidences <= bin_upper))[0]
+        if len(in_bin) == 0:
             continue
-
+        
         # Calculate accuracy for this bin
-        bin_accuracy = np.mean(predictions[in_bin] == true_labels[in_bin])
+        bin_accuracy = np.mean(y_true[in_bin] == y_pred[in_bin])
         
         # Calculate average confidence for this bin
         bin_confidence = np.mean(confidences[in_bin])
         
-        # Calculate the weight of this bin (proportion of total predictions)
-        bin_weight = np.mean(in_bin)
+        # Proportion of samples in this bin
+        bin_weight = len(in_bin) / len(y_true)
         
-        # Add to ECE
-        ece += np.abs(bin_accuracy - bin_confidence) * bin_weight
+        # Contribution of this bin to the ECE
+        ece += np.abs(bin_confidence - bin_accuracy) * bin_weight
+        
     return ece
 #%%
-def delete_none_values(dataset):
-    #delete any row with None value
-    modified_dsets = {}
-    for split_name in ['train', 'validation', 'test']:
-        modified_dsets[split_name] = dataset[split_name].filter(lambda x: all(value is not None for value in x.values()))
-    return modified_dsets
-#%%
+def get_combined_data(dataset):
+    ground_truth_all = []
+    prediction_all = []
+    confidence_all = []
+    # Function to extract columns and append to lists
+    for split in ['train', 'test', 'validation']:
+        split_data = dataset[split]
+        ground_truth_all.extend(split_data['ground_truth'])
+        prediction_all.extend(split_data['prediction'])
+        # if the dataset has confidence values, append them to the list
+        if 'confidence' in split_data.column_names:
+            confidence_all.extend(split_data['confidence'])
+            
 
+
+    # Convert lists to NumPy arrays
+    ground_truth_array = np.array(ground_truth_all)
+    prediction_array = np.array(prediction_all)
+    confidence_array = np.array(confidence_all)/100
+    return ground_truth_array, prediction_array, confidence_array
+#%%
+#clead dataset
+def datase_cleaning(dataset, dataset_name):
+    emotion2idx = {v:k for k,v in enumerate (emotion_labels[dataset_name])}
+    ground_truth_set = emotion2idx.keys()
+    #delete all instances where the prediction has value that is not in the ground truth and convert emotion to its index using emotion2_idx
+    for split in ['train', 'test', 'validation']:
+        dataset[split] = dataset[split].filter(lambda x: x['prediction'] in ground_truth_set)
+        dataset[split] = dataset[split].map(lambda x: {'ground_truth': emotion2idx[x['ground_truth']], 'prediction': emotion2idx[x['prediction']]})
+    return dataset
+
+#%%
 #merge all splits train, test, and validation into one split
-def get_ece_score(outputs_path, model_name, dataset_name, mergeSplits= False):
-        output_dataset = load_from_disk(f"{outputs_path}{dataset_name}/first/{model_name}")
-        output_dataset = delete_none_values(output_dataset)
-        if mergeSplits:
-            merged_dataset = merge_dataset_splits(output_dataset)
-        else:
-            merged_dataset = output_dataset
-        
-        y_true = merged_dataset['ground_truth']
-        y_pred = merged_dataset['prediction']
-        confidences = merged_dataset['confidence']
-        confidences = [float(c) / 100 for c in confidences]
-
-        y_true = np.array(y_true)
-        y_pred = np.array(y_pred)
-        confidences = np.array(confidences)
-        ece = calculate_ece(confidences, y_pred, y_true, n_bins=10)
-
-        print(f"model: {model_name}    ece", ece)
-        return ece
+def get_ece_score( y_true, y_pred, confidence):
+    ece = calculate_ece(y_true,y_pred, confidence, n_bins=10)
+    print(f"dataset: {dataset_name} ,  model: {model_name}  , ece: {ece}")
+    return ece
 
         
 #%%
-get_ece_score(data_folder, 'Llama-7B', 'emowoz', mergeSplits=True)
-#%%
+def plot_calibration_diagram(y_true, y_pred, confidence):
+    # Determine correctness of each prediction
+    correct = (y_true == y_pred).astype(int)
 
+    # Bin the data & calculate the fraction of correct predictions per bin
+    bins = np.linspace(0, 1, 11)
+    digitized = np.digitize(confidence, bins) - 1  # Bin indices for each prediction
+    bin_width = bins[1] - bins[0]
+    bin_centers = bins[:-1] + bin_width / 2  # Midpoints of bins
+
+    fraction_of_positives = np.array([correct[digitized == i].mean() for i in range(len(bins)-1)])
+    bin_centers = bin_centers[~np.isnan(fraction_of_positives)]
+    fraction_of_positives = fraction_of_positives[~np.isnan(fraction_of_positives)]
+
+    # Plot
+    plt.plot(bin_centers, fraction_of_positives, 's-', label='Model Calibration')
+    plt.plot([0, 1], [0, 1], '--', color='gray', label='Perfect Calibration')
+    plt.xlabel('Confidence Score')
+    plt.ylabel('Fraction of Correct Predictions')
+    plt.title('Calibration Plot')
+    plt.legend()
+    plt.show()
+
+# %%
+#%%
+# main
+outputs_path = data_folder
+model_name = 'Mistral-7B'
+dataset_name = 'meld'
+stage_of_verbalization = 'first'
+raw_dataset = load_from_disk(f"{outputs_path}{dataset_name}/{stage_of_verbalization}/{model_name}")
+cleaned_dataset = datase_cleaning(raw_dataset, dataset_name)
+y_true, y_pred, confidence = get_combined_data(cleaned_dataset)
+f_scores = get_accuracy_scores(y_true, y_pred)
+if stage_of_verbalization == "first":
+    
+    #ece = get_ece_score(y_true, y_pred, confidence)
+    plot_calibration_diagram(y_true, y_pred, confidence)
+
+print(f_scores)
+#print(ece)
+plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
+
+
+# %%
+print(y_pred, y_true)
+# %%
+y_true = np.array([1, 0, 2, 1, 2, 0, 1])
+y_pred = np.array([1, 2, 2, 0, 2, 0, 0])
+confidences = np.array([0.8, 0.6, 0.9, 0.3, 0.75, 0.85, 0.4])
+plot_calibration_diagram(y_true, y_pred, confidences)
+# %%
