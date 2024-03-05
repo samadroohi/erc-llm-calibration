@@ -503,11 +503,7 @@ model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate],
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
-<<<<<<< HEAD
-model_index =1
-=======
-model_index =3
->>>>>>> d94a13c273f16640cb150f515b98ef8cf361f904
+model_index =2
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
@@ -531,7 +527,7 @@ mode = modes[0]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
-    stage_of_verbalization = stages[0] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = stages[1] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "P(True)":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
