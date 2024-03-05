@@ -82,7 +82,7 @@ First, you always analyze the context and query utterances of a conversation and
     "angry"
 
 
-    You redict [others], only when the query utterance does not carry any emotion.
+    You predict [others], only when the query utterance does not carry any emotion.
 
 Second, you always provide your confidence on your prediction as an integer number between 0 and 100, where 0 indicates that you are completly uncertain about your prediction and 100 indicates that you are highly certain about that prediction. 
 
