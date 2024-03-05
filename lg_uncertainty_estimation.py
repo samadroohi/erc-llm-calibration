@@ -285,16 +285,17 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
 
-            if i %100 == 1:
+            #if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                       outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
 
        
     elif mode == "logit-based":
-        prompts_dataset = prepare_prompt(processed_data, dataset_name, mode)
+        prompts_dataset =  prepare_prompt(processed_data, dataset_name, mode, 
+                                         model_template)
         outputs['prediction_label']=[]
         outputs['prediction_emotion_model']=[]
         outputs['confidence_model']=[]
@@ -405,13 +406,15 @@ def prepare_data(dataset_name, context_length, mode, assess_type):
         idx2emotion = {k:v for k,v in enumerate (emotion_labels)}
         processed_data = {}
 
-        if mode == "verbalized":
+        if mode == "verbalized" or mode == "logit-based":
             datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
             datasets_df = load_ds(datapath)
             ds_grouped_dialogues = group_dialogues(datasets_df)
             processed_data['train'] = extract_context_meld(ds_grouped_dialogues['train'],context_length)
             processed_data['test'] = extract_context_meld(ds_grouped_dialogues['test'],context_length)
             processed_data['validation'] = extract_context_meld(ds_grouped_dialogues['validation'],context_length)
+        
+
 
         elif mode == "P(True)":
             dataset_dict = load_from_disk(f"data/ed_verbalized_uncertainty_{dataset_name}_all_splits")
@@ -496,14 +499,18 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld','emowoz', 'emocx', 'dailydialog']
-dataset_index = 2
+dataset_index = 0
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
+<<<<<<< HEAD
 model_index =2
+=======
+model_index =0
+>>>>>>> d58679dca40eb68b4c98699f16db569d6404f445
 model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
@@ -523,7 +530,7 @@ emotion_tokens = [["neutral", "surprise", "fear", "sadness", "joy", "disgust", "
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
-mode = modes[0]
+mode = modes[1]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
