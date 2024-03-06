@@ -475,7 +475,7 @@ datasets = ['meld','emowoz', 'emocx', 'dailydialog']
 dataset_index = 0
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
-model_index =2
+model_index =3
 model_name = models[model_index]
 
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
