@@ -276,11 +276,11 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
-            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens)
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
 
             softmax_transition, prediction_transition = get_transition_scores(inputs_zero,model, tokenizer ,outputs_zero, emotion_tokens_dict)
-            softmax_model, prediction_model = get_model_scores(outputs_zero, model, tokenizer, emotion_tokens_dict, num_new_tokens)
+            #softmax_model, prediction_model = get_model_scores(outputs_zero, model, tokenizer, emotion_tokens_dict, num_new_tokens)
 
             outputs['context'].append(prompts_dataset['context'][i])
             outputs['query'].append(prompts_dataset['query'][i])
@@ -315,7 +315,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
         for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt")
-            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=200)
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=200,  pad_token_id=tokenizer.eos_token_id)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
             
