@@ -293,9 +293,9 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             #outputs['softmax_model'].append(softmax_model)
             outputs['prediction_transition'].append(prediction_transition)
             outputs['softmax_transition'].append(softmax_transition)
-            #if i % 100 == 1:
+            if i % 100 == 1:
             #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
-            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
+                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
             torch.cuda.empty_cache()
             
     elif mode == "P(True)":
@@ -476,20 +476,16 @@ dataset_index = 0
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_index =2
+model_name = models[model_index]
 
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
                    [letemplate, letemplate, metemplate,zetemplate],
                    [lcxtemplate, lcxtemplate, mcxtemplate, zcxtemplate]] #zmtemplate for zypher meld #mmtemplate  #mmtemplate for misteralmeld , and lmtemplate for lamameld
 
 
-
-
-model_name = models[model_index]
 model_template = model_templates[dataset_index][model_index]
 
-
 #Load model
-
 
 model, tokenizer = model_settings(model_name) #,device_map
 
