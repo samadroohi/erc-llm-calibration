@@ -8,14 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 #%%
-datasets = ['meld', 'emowoz', 'emocx']
-models = ['Llama-7B', 'Llama-13B', 'Mistral-7B', 'Zephyr-7B']
 
-data_folder = f"/home/samad/Desktop/ACII/data/"
-
-emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger"]
-, 'emowoz': ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"], 
-'emocx':["others", "happy", "sad" , "angry"]}
 
 #%%
 
@@ -45,10 +38,6 @@ def plot_confusion_matrix(y_true, y_pred, labels):
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
     plt.show()
-
-# %%
-
-# Expected Calibration Error
 
 #%%
 
@@ -93,17 +82,18 @@ def calculate_ece(y_true, y_pred, confidences, n_bins=10):
         
     return ece
 #%%
-def get_combined_data(dataset):
+def get_combined_data(dataset, stage_of_verbalization):
     ground_truth_all = []
     prediction_all = []
     confidence_all = []
+    confidence_array = None
     # Function to extract columns and append to lists
     for split in ['train', 'test', 'validation']:
         split_data = dataset[split]
         ground_truth_all.extend(split_data['ground_truth'])
         prediction_all.extend(split_data['prediction'])
         # if the dataset has confidence values, append them to the list
-        if 'confidence' in split_data.column_names:
+        if stage_of_verbalization == "first":
             confidence_all.extend(split_data['confidence'])
             
 
@@ -111,15 +101,17 @@ def get_combined_data(dataset):
     # Convert lists to NumPy arrays
     ground_truth_array = np.array(ground_truth_all)
     prediction_array = np.array(prediction_all)
-    confidence_array = np.array(confidence_all)/100
+    if stage_of_verbalization == "first":
+        confidence_array = np.array(confidence_all)/100
     return ground_truth_array, prediction_array, confidence_array
 #%%
 #clead dataset
-def datase_cleaning(dataset, dataset_name):
-    emotion2idx = {v:k for k,v in enumerate (emotion_labels[dataset_name])}
+def datase_cleaning(dataset, emotion_labels):
+    emotion2idx = {v:k for k,v in enumerate (emotion_labels)}
     ground_truth_set = emotion2idx.keys()
     #delete all instances where the prediction has value that is not in the ground truth and convert emotion to its index using emotion2_idx
     for split in ['train', 'test', 'validation']:
+        # delete confidence column if it exists
         dataset[split] = dataset[split].filter(lambda x: x['prediction'] in ground_truth_set)
         dataset[split] = dataset[split].map(lambda x: {'ground_truth': emotion2idx[x['ground_truth']], 'prediction': emotion2idx[x['prediction']]})
     return dataset
@@ -159,29 +151,35 @@ def plot_calibration_diagram(y_true, y_pred, confidence):
 # %%
 #%%
 # main
-outputs_path = data_folder
-model_name = 'Mistral-7B'
-dataset_name = 'meld'
+datasets = ['meld', 'emowoz', 'emocx']
+models = ['Llama-7B', 'Llama-13B', 'Mistral-7B', 'Zephyr-7B']
+
+data_folder = f"/home/samad/Desktop/ACII/data/"
+
+emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger"]
+, 'emowoz': ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"], 
+'emocx':["others", "happy", "sad" , "angry"]}
 stage_of_verbalization = 'first'
-raw_dataset = load_from_disk(f"{outputs_path}{dataset_name}/{stage_of_verbalization}/{model_name}")
-cleaned_dataset = datase_cleaning(raw_dataset, dataset_name)
-y_true, y_pred, confidence = get_combined_data(cleaned_dataset)
-f_scores = get_accuracy_scores(y_true, y_pred)
-if stage_of_verbalization == "first":
+for model_name in models:
+    for dataset_name in datasets:
+        print(f"dataset: {dataset_name} ,  model: {model_name}")
+        outputs_path = data_folder
+        raw_dataset = load_from_disk(f"{outputs_path}{dataset_name}/{stage_of_verbalization}/{model_name}")
+        cleaned_dataset = datase_cleaning(raw_dataset, emotion_labels[dataset_name])
+        y_true, y_pred, confidence = get_combined_data(cleaned_dataset, stage_of_verbalization)
+        f_scores = get_accuracy_scores(y_true, y_pred)
+        if stage_of_verbalization == "first":
     
     #ece = get_ece_score(y_true, y_pred, confidence)
-    plot_calibration_diagram(y_true, y_pred, confidence)
+            plot_calibration_diagram(y_true, y_pred, confidence)
 
-print(f_scores)
+        print(f"f-scores: {f_scores}")
 #print(ece)
-plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
+        plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
 
 
-# %%
-print(y_pred, y_true)
-# %%
-y_true = np.array([1, 0, 2, 1, 2, 0, 1])
-y_pred = np.array([1, 2, 2, 0, 2, 0, 0])
-confidences = np.array([0.8, 0.6, 0.9, 0.3, 0.75, 0.85, 0.4])
-plot_calibration_diagram(y_true, y_pred, confidences)
+# 
+
+
+
 # %%
