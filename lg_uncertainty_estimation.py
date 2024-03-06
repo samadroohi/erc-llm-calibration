@@ -475,7 +475,7 @@ datasets = ['meld','emowoz', 'emocx', 'dailydialog']
 dataset_index = 0
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
-model_index =3
+model_index =1
 model_name = models[model_index]
 
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 
@@ -513,7 +513,7 @@ if mode == "P(True)":
 for dataset_name in [datasets[dataset_index]]:
     
     emotion_label_tokens_dict = {emotion: tokenizer.encode(emotion)[1] for emotion in emotion_labels[dataset_index]}
-    send_slack_notification( f"The progam started for dataset: {dataset_name}", error_flag)
+    send_slack_notification( f"The progam started model: {model_name} mode: {mode}  dataset: {dataset_name} ", error_flag)
     context_length = 2   # the maximum number of utterances to be considered for the context
     processed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, mode,assess_type)
     new_datapath = f'data/ed_{mode}_{stage_of_verbalization}_{assess_type}_uncertainty_{dataset_name}_{model_name}'
