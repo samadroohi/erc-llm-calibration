@@ -163,7 +163,7 @@ def meld_logit(context, query,tokenizer,emotion_label):
     anger
 
 
-If the query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: neutral
 
 If you are uncertain among two or more emotions, you should always choose the most accurate one.
 
@@ -172,11 +172,11 @@ You always will respond with the most accurate emotional state of the query utte
 Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
 
 
+####
+
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
-####
-Here is an examples:
-    
+
     context: [Monica]: You never knew she was a lesbian? [surprise]
             [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
     
@@ -198,6 +198,7 @@ Output string: neutral
 
 ####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
  
+ what is your prediction for the following query utterance?
  
     context: {context} 
 
