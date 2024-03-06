@@ -295,7 +295,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             outputs['softmax_transition'].append(softmax_transition)
             #if i % 100 == 1:
             #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
-            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_model: ",prediction_model, "   , softmax_model:",  softmax_model, ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
+            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
             torch.cuda.empty_cache()
             
     elif mode == "P(True)":
