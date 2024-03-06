@@ -293,9 +293,9 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             #outputs['softmax_model'].append(softmax_model)
             outputs['prediction_transition'].append(prediction_transition)
             outputs['softmax_transition'].append(softmax_transition)
-            if i % 100 == 1:
+            #if i % 100 == 1:
             #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
-                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
+            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
             torch.cuda.empty_cache()
             
     elif mode == "P(True)":
@@ -403,7 +403,7 @@ def prepare_data(dataset_name, context_length, mode, assess_type):
         emotion2idx = {emo: i for i, emo in enumerate(emotion_labels)}
         idx2emotion = {i: emo for i, emo in enumerate(emotion_labels)}
         processed_data = {}
-        if mode == "verbalized":
+        if mode == "verbalized" or mode == "logit-based":
             dataset = load_dataset("hhu-dsml/emowoz", 'emowoz')
             #change the values of all cells with value "fearful or sad/disappointed" to "disappointed"
             dataset['train'] = dataset['train'].map(lambda x: "disappointed" if x == "fearful or sad/disappointed" else x)
@@ -431,7 +431,7 @@ def prepare_data(dataset_name, context_length, mode, assess_type):
         emotion2idx = {emo: i for i, emo in enumerate(emotion_labels)}
         idx2emotion = {i: emo for i, emo in enumerate(emotion_labels)}
         processed_data = {}
-        if mode == "verbalized":
+        if mode == "verbalized" or mode == "logit-based":
             emotion_labels = ["others", "happy", "sad" , "angry"]
             emotion2idx = {emo: i for i, emo in enumerate(emotion_labels)}
             idx2emotion = {i: emo for i, emo in enumerate(emotion_labels)}
@@ -472,10 +472,10 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld','emowoz', 'emocx', 'dailydialog']
-dataset_index = 0
+dataset_index = 2
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
-model_index =3
+model_index =0
 model_name = models[model_index]
 
 model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate], 

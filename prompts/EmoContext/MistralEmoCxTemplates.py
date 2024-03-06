@@ -1,6 +1,8 @@
 def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
         prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
+    elif mode == "logit-based":
+        prompt = emocx_logit(context, query,tokenizer, emotion_label)
     elif mode == 'verbalized':
         prompt = emocx_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
@@ -19,7 +21,7 @@ def emocx_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     [angry]
 
 
-You redict [others], only when the query utterance does not carry any emotion.
+You predict [others], only when the query utterance does not carry any emotion.
 
 If you are uncertain among two or more emotions, you should always choose the most accurate one.
 
@@ -135,10 +137,68 @@ What is your prediction and confidence on that prediction for the following quer
 Output JSON string:
 >>>"""
         
-    
     return prompt
 
+def emocx_logit(context, query, tokenizer,emotion_label):
+    prompt = f""" You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
+    
+    others 
+    happy 
+    sad 
+    angry
 
+
+You predict "others", only when the query utterance does not carry any emotion.
+
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
+You always will respond with the most accurate emotional state of the query utterance. 
+
+Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
+
+If there is any emoticon in the query utterance, you should consider the emoticon as a part of the query utterance and analyze the emotion of the query utterance accordingly.
+
+
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+
+####
+
+    context: [Speaker1]: Don't worry  I'm girl , 
+            [Speake2]: hmm how do I know if you are
+    
+    query utterance: [speaker1]:  What's ur name?
+
+    
+Category: others
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+ 
+    context: [Speaker1]: U r ridiculous
+            [Speaker2]: I might be ridiculous but I am telling the truth.
+
+    query utterance: [Speaker1]: U little disgusting bitch
+
+Category: angry
+
+####
+<<<Remember that you always respond with just the most accurate emotion label (single lable) without any extra explanations or notes on your response. 
+
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
+    context: {context} 
+
+    query utterance: {query}
+
+
+Category:>>>"""
+    
+    return prompt
+     
 
 def emocx_ptrue(context, query, tokenizer,emotion_label):
     pass
