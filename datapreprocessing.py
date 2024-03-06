@@ -81,6 +81,15 @@ def extract_context_dailydialog(dataset, context_length, idx2emotion):
     data = pd.DataFrame(data)   
     return data
 
+def extract_context_Emocx(dataset):
+    data = {"context":[],	"query":[], "emotion":[]}
+    for row in dataset.iterrows():
+        data["context"].append(f"[Speaker1]: {row[1]['turn1']}, \n [Speaker2]: {row[1]['turn2']}")
+        data["query"].append(f"[Speaker1]: {row[1]['turn3']}")
+        data["emotion"].append(row[1]['label'])
+    data = pd.DataFrame(data)   
+    return data
+
 # %%
 # def main():
 #     #hyperparameters

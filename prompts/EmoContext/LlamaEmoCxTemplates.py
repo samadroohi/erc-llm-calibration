@@ -1,32 +1,29 @@
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
-        prompt = meld_ptrue(context, query,tokenizer, emotion_label )
+        prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = emocx_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
+def emocx_verbalized(context, query, tokenizer, stage_of_verbalization = None):
     if stage_of_verbalization  == "zero":
 
         prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    [neutral] 
-    [surprise] 
-    [fear] 
-    [sadness] 
-    [joy] 
-    [disgust] 
-    [anger]
+    [others] 
+    [happy] 
+    [sad] 
+    [angry]
 
 
-If the query utterance does not carry any clear emotion, the output is: [neutral]
+You redict [others], only when the query utterance does not carry any emotion.
 
 If you are uncertain among two or more emotions, you should always choose the most accurate one.
 
@@ -34,34 +31,38 @@ You always will respond with the most accurate emotional state of the query utte
 
 Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
 
+If there is any emoticon in the query utterance, you should consider the emoticon as a part of the query utterance and analyze the emotion of the query utterance accordingly.
+
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
 ####
 Here is an examples:
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    context: [Speaker1]: Don't worry  I'm girl , 
+            [Speake2]: hmm how do I know if you are
     
-    query utterance: [Monica]: I am sorry
+    query utterance: [speaker1]:  What's ur name?
 
     
-Output string: [sadness]
+Output string: [others]
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
-
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
-
-    query utterance: [Chandler]: That I did. That I did.
-
-Output string: [neutral]
-
-####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
  
+    context: [Speaker1]: U r ridiculous
+            [Speaker2]: I might be ridiculous but I am telling the truth.
+
+    query utterance: [Speaker1]: U little disgusting bitch
+
+Output string: [angry]
+
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. 
+
+Remember that you predict [others], only when the query utterance does not carry any emotion.
  
+
     context: {context} 
 
     query utterance: {query}
@@ -72,19 +73,16 @@ Output string: [neutral]
         prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
     You have two following tasks:
      
-    First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
+First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral" 
-    "surprise" 
-    "fear" 
-    "sadness" 
-    "joy" 
-    "disgust" 
-    "anger"
+    "others"
+    "happy" 
+    "sad" 
+    "angry"
 
 
-If the query utterance does not carry any clear emotion, the output is: [neutral]
+    You predict [others], only when the query utterance does not carry any emotion.
 
 Second, you always provide your confidence on your prediction as an integer number between 0 and 100, where 0 indicates that you are completly uncertain about your prediction and 100 indicates that you are highly certain about that prediction. 
 
@@ -95,39 +93,44 @@ Here is an example of how an uncertainty-aware emotion recognition in conversati
 ####
 Here is an examples:
     
-    context: [Monica]: You never knew she was a lesbian? [surprise]
-            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    context: [Speaker1]: Don't worry  I'm girl , 
+            [Speake2]: hmm how do I know if you are
     
-    query utterance: [Monica]: I am sorry
+    query utterance: [speaker1]:  What's ur name?
 
     
 Output JSON string: 
     
     {
-    "prediction": "sadness",
-    "confidence": 85
+    "prediction": "others",
+    "confidence": 80
     }
 
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
+    
+    context: [Speaker1]: U r ridiculous
+            [Speaker2]: I might be ridiculous but I am telling the truth.
 
-    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-        [The Interviewer]: You mustve had your hands full. [neutral]
+    query utterance: [Speaker1]: U little disgusting bitch
 
-    query utterance: [Chandler]: That I did. That I did.
 
 Output JSON string:
     
     {
-    "prediction": "neutral",
-    "confidence": 95
+    "prediction": "angry",
+    "confidence": 90
     }
 
 
 ####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
+Remember that you predict [others], only when the query utterance does not carry any emotion.
+
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
+
+What is your prediction and confidence on that prediction for the following query utterance?
 
 
     context: {context} 
@@ -148,18 +151,18 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 
 
-def meld_ptrue(context, query, tokenizer,emotion_label):
+def emocx_ptrue(context, query, tokenizer,emotion_label):
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
     triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
 
-    A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "Query utterance".
+    A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "query utterance".
 
-    B: No, the emotional state of the interlocutor of the "Query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
+    B: No, the emotional state of the interlocutor of the "query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
 
     
-The potential emotional states list is as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+The potential emotional states list is as followings: "others", "happy", "sad" , "angry"
 
     
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
@@ -167,13 +170,13 @@ Here's an example of how an emotion recognition assistant for conversation analy
 
 ---Input:
 
-    Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-            [The Interviewer]: You mustve had your hands full. [neutral]
+    context: [Speaker1]: Don't worry  I'm girl , 
+            [Speake2]: hmm how do I know if you are
+    
+    query utterance: [speaker1]:  What's ur name? 
 
-    Query utterance: [Chandler]: That I did. That I did. 
 
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```neutral``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+Question: Given the context and considering the potential emotion labels, is the proposed label ```others``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
 
     A: Yes
 
@@ -191,13 +194,13 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 ---Input:
 
-    Context: [Monica]: You never knew she was a lesbian? [surprise]
-    [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    context: [Speaker1]: U r ridiculous
+            [Speaker2]: I might be ridiculous but I am telling the truth.
 
-    Query utterance: [Monica]: I am sorry
+    query utterance: [Speaker1]: U little disgusting bitch
 
 
-Question: Given the context and considering the potential emotion labels, is the proposed label ```joy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+Question: Given the context and considering the potential emotion labels, is the proposed label ```happy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
 
     A: Yes
 
@@ -208,15 +211,15 @@ Question: Given the context and considering the potential emotion labels, is the
     
 ---Output:
 
-    The correct answer is: B
+    The correct answer is: No
 
 """ + E_SYS+ f""" Here is a new conversation:
 
 ---Input:
 
-    Context: {context}
+    context: {context}
         
-    Query utterance: {query} 
+    query utterance: {query} 
 
 
 
@@ -228,7 +231,7 @@ Question: Given the context and considering the potential emotion labels, is the
 
     B: No
 
-Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+Remember that the potential emotion labels are: "others", "happy", "sad" , "angry"
 
 ---Output:
 

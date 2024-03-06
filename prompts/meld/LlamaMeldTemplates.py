@@ -4,8 +4,11 @@ B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
+    elif mode == "logit-based":
+        prompt = meld_logit(context, query,tokenizer, emotion_label)
     elif mode == 'verbalized':
         prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+    
     return prompt
 
 
@@ -146,7 +149,62 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 
 
+def meld_logit(context, query,tokenizer,emotion_label):
+     prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
+    
+    neutral 
+    surprise 
+    fear 
+    sadness 
+    joy 
+    disgust 
+    anger
 
+
+If the query utterance does not carry any clear emotion, the output is: [neutral]
+
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
+You always will respond with the most accurate emotional state of the query utterance. 
+
+Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
+
+
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+####
+Here is an examples:
+    
+    context: [Monica]: You never knew she was a lesbian? [surprise]
+            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    
+    query utterance: [Monica]: I am sorry
+
+    
+Output string: sadness
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+
+    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+        [The Interviewer]: You mustve had your hands full. [neutral]
+
+    query utterance: [Chandler]: That I did. That I did.
+
+Output string: neutral
+
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+ 
+ 
+    context: {context} 
+
+    query utterance: {query}
+
+""" + E_INST+ "Output string:" 
+     return prompt
 
 def meld_ptrue(context, query, tokenizer,emotion_label):
 
@@ -236,7 +294,6 @@ Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', '
  
  """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
     return prompt
-
 
 
 

@@ -32,13 +32,9 @@ def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
         [satisfie]: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
 
 
-If the query utterance does not carry any emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-If you are uncertain among two or more emotions, you should always choose the most accurate one.
-
-You always will respond with the most accurate emotional state of the query utterance. 
-
-Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
+You always just output the accurate emotional state of the query utterance inside square brackets without any explanation. 
 
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
@@ -68,7 +64,11 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 Output string: [satisfied]
 
-####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: [neutral], [disappointed], [dissatisfied], [apologetic], [abusive], [excited], [satisfie], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
  
  
     context: {context} 
@@ -143,7 +143,7 @@ Output JSON string:
     }
 
 
-####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
+####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
 
@@ -153,8 +153,6 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
     query utterance: {query}
 
 """ + E_INST+ "Output JSON string:" 
-        
-
 
     elif stage_of_verbalization == "second_stage":
          # use data from P(True)

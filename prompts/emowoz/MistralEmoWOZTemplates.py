@@ -1,4 +1,4 @@
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_emowoz(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
         prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
@@ -29,15 +29,13 @@ def emowoz_verbalized(context, query, tokenizer, stage_of_verbalization = None):
 
 
 
-If the Query utterance does not carry any clear emotion, the output is: [neutral]
+If the query utterance does not carry any clear emotion, the output is: [neutral]
 
-You always just output the accurate emotional state of the <<<Query utterance>>> without any explanation. 
-
-You will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
+You always just output the accurate emotional state of the query utterance inside square brackets without any explanation. 
 
 
 ####
-Here are some examples:
+Here is an example of how an emotion recognition in conversation assistant should work:        
 
     
     context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
@@ -62,16 +60,20 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 Output string: [satisfied]
 
-Remember that you will only respond with the category. Do not include the word "Category". Do not provide explanations or notes.
-
 ####
 <<<
+    Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: [neutral], [disappointed], [dissatisfied], [apologetic], [abusive], [excited], [satisfie], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
+    
     context: {context} 
 
     query utterance: {query}
 
 
-Category:>>>"""
+Output string:>>>"""
 
     elif stage_of_verbalization == "first":
         prompt = """You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 

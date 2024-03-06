@@ -63,8 +63,11 @@ Output string: [neutral]
 
 ####"""
 
-        user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
- 
+        user_prompt=f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables:  [neutral], [surprise], [fear], [sadness], [joy], [disgust], [anger], inside square brackets, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
  
     context: {context} 
 
@@ -81,13 +84,21 @@ Output string:
     First, you always analyze the context and query utterances of a conversation and predict the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    "neutral" 
-    "surprise" 
-    "fear" 
-    "sadness" 
-    "joy" 
-    "disgust" 
-    "anger"
+    "neutral": A state of emotional balance with no strong emotions present, marked by calmness and an even-tempered psychological stance.
+
+    "surprise": A brief, intense emotional response to unexpected events, ranging from mild astonishment to profound shock, which shifts attention towards new stimuli.
+
+    "fear": An emotion triggered by perceived threats, characterized by a fight-or-flight response, heightened vigilance, and readiness to act.
+
+    "sadness": An emotional state arising from loss, disappointment, or reflection, associated with decreased energy and motivation, leading to introspection.
+
+    "joy": A positive state reflecting happiness, contentment, or euphoria, often resulting from success or fulfilling experiences, enhancing well-being and social bonds.
+
+    "disgust": An emotional reaction to offensive, repulsive, or harmful stimuli, acting as a protective mechanism to avoid danger or contamination.
+
+    "anger": An emotion stemming from frustration, irritation, or perceived injustice, which can lead to aggression or motivate constructive change.
+
+    
 
 
 If the query utterance does not carry any clear emotion, the output is: [neutral]
@@ -133,7 +144,7 @@ Output JSON string:
 
 ####"""
 
-    user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
+        user_prompt=f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence in that prediction enclosed in double quotes using a JSON string fromat, without any extra explanation.
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
 
