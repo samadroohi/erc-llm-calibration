@@ -191,13 +191,14 @@ Output string: neutral
 
 ####""" +f"""
 
-<<<Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
+<<<Remember that you always respond with just the most accurate emotion label (single lable) without any extra explanations or notes on your response. 
+
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
     context: {context} 
 
     query utterance: {query}
 
-Output string:
->>>"""
+Output string:>>>"""
 
     return prompt
 
