@@ -293,9 +293,9 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             #outputs['softmax_model'].append(softmax_model)
             outputs['prediction_transition'].append(prediction_transition)
             outputs['softmax_transition'].append(softmax_transition)
-            #if i % 100 == 1:
+            if i % 100 == 1:
             #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
-            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
+                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction_transition:", prediction_transition, ", softmax_transition:", softmax_transition)
             torch.cuda.empty_cache()
             
     elif mode == "P(True)":
@@ -522,7 +522,7 @@ for dataset_name in [datasets[dataset_index]]:
     splits = ['train', 'validation', 'test']
     try:
         for split in splits:
-            print(f"************Started {split} for dataset {dataset_name}**********") 
+            print(f"************Started {split} for dataset {dataset_name} model: {model_name} mode: {mode} **********") 
             outputs = generate_responses(processed_data[split],
                                          split,model,tokenizer, device,
                                            mode, dataset_name, model_template,
