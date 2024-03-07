@@ -210,12 +210,11 @@ Output string: neutral
 def meld_ptrue(context, query, tokenizer,emotion_label):
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
-    triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
+Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
 
-    A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "Query utterance".
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
 
-    B: No, the emotional state of the interlocutor of the "Query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the give motional states list than the proposed label.
 
     
 The potential emotional states list is as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
@@ -224,16 +223,15 @@ The potential emotional states list is as followings: 'neutral', 'surprise', 'fe
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
 
 
----Input:
-
+####
     Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
             [The Interviewer]: You mustve had your hands full. [neutral]
 
     Query utterance: [Chandler]: That I did. That I did. 
 
 
-Question: Given the context and considering the potential emotion labels, is the proposed label ```neutral``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
-
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
+    
     A: Yes
 
     or
@@ -256,7 +254,7 @@ Here is another example of how an emotion recognition in conversation assistant 
     Query utterance: [Monica]: I am sorry
 
 
-Question: Given the context and considering the potential emotion labels, is the proposed label ```joy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -268,6 +266,7 @@ Question: Given the context and considering the potential emotion labels, is the
 ---Output:
 
     The correct answer is: B
+####
 
 """ + E_SYS+ f""" Here is a new conversation:
 
@@ -278,8 +277,7 @@ Question: Given the context and considering the potential emotion labels, is the
     Query utterance: {query} 
 
 
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```{emotion_label}``` the most accurate label to describe hte emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -287,13 +285,10 @@ Question: Given the context and considering the potential emotion labels, is the
 
     B: No
 
-Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
 ---Output:
-
-    The answer is:
  
- """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
+ """ + E_INST +" The correct answer is:"
     return prompt
 
 
