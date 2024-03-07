@@ -165,7 +165,7 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 
 def emowoz_logit(context, query, tokenizer,emotion_label):
-    def meld_logit(context, query,tokenizer,emotion_label):
+
      prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
 You have two following tasks:
      
