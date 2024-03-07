@@ -190,15 +190,11 @@ First, you always analyze the context and query utterances of a conversation and
 
 If the query utterance does not carry any clear emotion, the output is: neutral
 
-Second, you always provide your confidence on your prediction as an integer number between 0 and 100, where 0 indicates that you are completly uncertain about your prediction and 100 indicates that you are highly certain about that prediction. 
-
-You always provide the output in a JSON format, with your "prediction" and your "confidence" on that prediction, without any extra explanation.
-
-####
+You always just output the most accurate emotional state of the query utterance, regarding the context, without any explanation. 
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
 
-
+####
     Here is an examples:
     
     context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
@@ -225,7 +221,9 @@ Output string: satisfied
 
 ####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion
         label from the list of emotion lables: neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie, without any explanations or notes. 
-        
+    
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
     what is your prediction for the following query utterance?
  
     context: {context} 

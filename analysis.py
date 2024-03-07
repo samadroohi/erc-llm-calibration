@@ -7,8 +7,9 @@ from datasets import Dataset, DatasetDict
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import brier_score_loss
+from sklearn.preprocessing import label_binarize
 #%%
-
 
 #%%
 
@@ -82,38 +83,53 @@ def calculate_ece(y_true, y_pred, confidences, n_bins=10):
         
     return ece
 #%%
-def get_combined_data(dataset, stage_of_verbalization):
+def get_combined_data(dataset, method):
     ground_truth_all = []
     prediction_all = []
     confidence_all = []
+    softmax_values_all = []
     confidence_array = None
+    softmax_preds = None
     # Function to extract columns and append to lists
     for split in ['train', 'test', 'validation']:
         split_data = dataset[split]
         ground_truth_all.extend(split_data['ground_truth'])
-        prediction_all.extend(split_data['prediction'])
+        
         # if the dataset has confidence values, append them to the list
-        if stage_of_verbalization == "first":
+        prediction_all.extend(split_data['prediction'])
+        if method == "zero":
+            continue            
+        elif method == "first":
             confidence_all.extend(split_data['confidence'])
-            
-
-
+        elif method == "logits":
+            softmax_values_all.extend(split_data['softmax_transition'])
     # Convert lists to NumPy arrays
     ground_truth_array = np.array(ground_truth_all)
     prediction_array = np.array(prediction_all)
-    if stage_of_verbalization == "first":
+    if method == "logits":
+        softmax_preds = np.array(softmax_values_all)
+    if method == "zero":
+        #do nothing
+        pass
+    elif method == "first":
         confidence_array = np.array(confidence_all)/100
-    return ground_truth_array, prediction_array, confidence_array
+    return ground_truth_array, prediction_array,  softmax_preds, confidence_array
 #%%
 #clead dataset
-def datase_cleaning(dataset, emotion_labels):
-    emotion2idx = {v:k for k,v in enumerate (emotion_labels)}
+def datase_cleaning(dataset,  method,emotion2idx):
     ground_truth_set = emotion2idx.keys()
     #delete all instances where the prediction has value that is not in the ground truth and convert emotion to its index using emotion2_idx
     for split in ['train', 'test', 'validation']:
+        if 'prediction_transition' in dataset[split].column_names:
+            #change the name to prediction
+            dataset[split] = dataset[split].rename_column('prediction_transition', 'prediction')
         # delete confidence column if it exists
         dataset[split] = dataset[split].filter(lambda x: x['prediction'] in ground_truth_set)
         dataset[split] = dataset[split].map(lambda x: {'ground_truth': emotion2idx[x['ground_truth']], 'prediction': emotion2idx[x['prediction']]})
+        if method =="logits":
+            # remove any instance where any item in the softmax_transition list is None
+            dataset[split] = dataset[split].filter(lambda x: any(x['softmax_transition']))
+
     return dataset
 
 #%%
@@ -122,8 +138,21 @@ def get_ece_score( y_true, y_pred, confidence):
     ece = calculate_ece(y_true,y_pred, confidence, n_bins=10)
     print(f"dataset: {dataset_name} ,  model: {model_name}  , ece: {ece}")
     return ece
+#%%
+def get_brier_score(y_true, prediction_probs):
+    # One-hot encode the actual class labels
+    num_classes = len(prediction_probs[0])
+    y_true_one_hot = label_binarize(y_true, classes=range(num_classes))
 
-        
+    # Calculate the Brier score for each class
+    brier_scores = [brier_score_loss(y_true_one_hot[:, i], prediction_probs[:, i]) for i in range(num_classes)]
+
+    # Calculate the average Brier score across all classes
+    average_brier_score = np.mean(brier_scores)
+
+    print(f"Average Brier Score: {average_brier_score}")
+    return average_brier_score
+
 #%%
 def plot_calibration_diagram(y_true, y_pred, confidence):
     # Determine correctness of each prediction
@@ -159,20 +188,35 @@ data_folder = f"/home/samad/Desktop/ACII/data/"
 emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disgust", "anger"]
 , 'emowoz': ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"], 
 'emocx':["others", "happy", "sad" , "angry"]}
-stage_of_verbalization = 'first'
+methods = ['zero', 'first','logits', 'ptrue']
+method = methods[2]
+
 for model_name in models:
     for dataset_name in datasets:
-        print(f"dataset: {dataset_name} ,  model: {model_name}")
+        emotion2idx = {v:k for k,v in enumerate (emotion_labels[dataset_name])}
+        print(f"*************dataset: {dataset_name} ,  model: {model_name}, method: {method} ************* ")
         outputs_path = data_folder
-        raw_dataset = load_from_disk(f"{outputs_path}{dataset_name}/{stage_of_verbalization}/{model_name}")
-        cleaned_dataset = datase_cleaning(raw_dataset, emotion_labels[dataset_name])
-        y_true, y_pred, confidence = get_combined_data(cleaned_dataset, stage_of_verbalization)
-        f_scores = get_accuracy_scores(y_true, y_pred)
-        if stage_of_verbalization == "first":
-    
-    #ece = get_ece_score(y_true, y_pred, confidence)
-            plot_calibration_diagram(y_true, y_pred, confidence)
+        path = f"{outputs_path}{dataset_name}/{method}/{model_name}"
+        # if pass is not available continue to the next dataset
+        try:
+            print (f"Model: {model_name} , Dataset: {dataset_name} , Method: {method}")
+            raw_dataset = load_from_disk(path)
+        except:
+            print(f"pass: {path} not available")
+            continue        
 
+        cleaned_dataset = datase_cleaning(raw_dataset,method, emotion2idx)
+        y_true, y_pred, softmax_preds,confidence = get_combined_data(cleaned_dataset, method)
+        f_scores = get_accuracy_scores(y_true, y_pred)
+        if method == "zero":
+                continue
+        elif method == "first":
+    #ece = get_ece_score(y_true, y_pred, confidence)
+                plot_calibration_diagram(y_true, y_pred, confidence)
+        elif method == "logits":
+            
+            brier_score = get_brier_score(y_true, softmax_preds)
+            print(f"brier_score: {brier_score}")
         print(f"f-scores: {f_scores}")
 #print(ece)
         plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
@@ -182,4 +226,14 @@ for model_name in models:
 
 
 
+# %%
+logit_test_dataset = load_from_disk(f"{outputs_path}meld/logits/Llama-13B")
+# %%
+logit_test_dataset['train'][:2]
+
+#%%
+
+# %%
+
+get_brier_score(y_true, y_pred)
 # %%

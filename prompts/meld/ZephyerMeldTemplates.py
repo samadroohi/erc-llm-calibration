@@ -190,17 +190,12 @@ If you are uncertain among two or more emotions, you should always choose the mo
 
 You always will respond with the most accurate emotional state of the query utterance. 
 
-Your always respond with just the most accurate emotion lable (single lable) without any explanations or notes on the output. 
+Your always respond with just the most accurate emotion lable without any explanations or notes on the output. 
 
 
 Here is an example of how an emotion recognition in conversation assistant should work:        
-
 
 ####
-
-Here is an example of how an emotion recognition in conversation assistant should work:        
-
-
     context: [Monica]: You never knew she was a lesbian? [surprise]
             [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
     
@@ -212,14 +207,13 @@ Output string: sadness
 
 Here is another example of how an emotion recognition in conversation assistant should work:
 
-
     context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
         [The Interviewer]: You mustve had your hands full. [neutral]
 
     query utterance: [Chandler]: That I did. That I did.
 
+    
 Output string: neutral
-
 ####"""
 
     user_prompt=f"""Remember that you always respond with just the most accurate emotion label (single lable) without any explanations or notes. If you are uncertain among two or more emotions, you should always choose the most accurate one.
