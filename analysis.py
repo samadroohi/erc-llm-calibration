@@ -9,6 +9,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import brier_score_loss
 from sklearn.preprocessing import label_binarize
+from sklearn.metrics import roc_curve, roc_auc_score, auc
+from itertools import cycle
 #%%
 
 #%%
@@ -38,7 +40,7 @@ def plot_confusion_matrix(y_true, y_pred, labels):
     sns.heatmap(cm, annot=True, fmt=".2f", cmap='Blues', xticklabels=labels, yticklabels=labels)
     plt.ylabel('True label')
     plt.xlabel('Predicted label')
-    plt.show()
+
 
 #%%
 
@@ -139,6 +141,50 @@ def get_ece_score( y_true, y_pred, confidence):
     print(f"dataset: {dataset_name} ,  model: {model_name}  , ece: {ece}")
     return ece
 #%%
+def get_ece_softmax(y_true, y_pred_probs, n_bins=10):
+    """
+    Compute the Expected Calibration Error (ECE) for multiclass classification.
+    
+    Parameters:
+    - y_true: numpy array of shape (n_samples,) with true class labels.
+    - y_pred_probs: numpy array of shape (n_samples, n_classes) with predicted probabilities.
+    - n_bins: Number of bins to use for calibration error calculation.
+    
+    Returns:
+    - ece: The Expected Calibration Error.
+    """
+    # Convert true labels to one-hot encoding
+    y_true_one_hot = np.eye(np.max(y_true) + 1)[y_true]
+
+    # Get the predicted class and confidence for each sample
+    pred_confidences = np.max(y_pred_probs, axis=1)
+    pred_classes = np.argmax(y_pred_probs, axis=1)
+    true_correct = (pred_classes == y_true).astype(float)
+
+    # Initialize bins
+    bins = np.linspace(0, 1, n_bins + 1)
+    bin_lowers = bins[:-1]
+    bin_uppers = bins[1:]
+    
+    ece = 0.0  # Initialize ECE
+    
+    # Compute ECE by binning predictions
+    for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+        # Indices of samples that fall into the current bin
+        in_bin = (pred_confidences > bin_lower) & (pred_confidences <= bin_upper)
+        if np.sum(in_bin) > 0:
+            # Average accuracy and confidence in the bin
+            bin_accuracy = np.mean(true_correct[in_bin])
+            bin_confidence = np.mean(pred_confidences[in_bin])
+            
+            # Weight of the bin (by the number of samples)
+            bin_weight = np.mean(in_bin)
+            
+            # Accumulate weighted absolute difference
+            ece += np.abs(bin_accuracy - bin_confidence) * bin_weight
+            
+    return ece
+#%%
 def get_brier_score(y_true, prediction_probs):
     # One-hot encode the actual class labels
     num_classes = len(prediction_probs[0])
@@ -175,9 +221,25 @@ def plot_calibration_diagram(y_true, y_pred, confidence):
     plt.ylabel('Fraction of Correct Predictions')
     plt.title('Calibration Plot')
     plt.legend()
-    plt.show()
 
-# %%
+#%%
+
+
+def plot_roc_curve(y_true, y_pred_probs,  ax):
+    # Binarize the output labels in one-vs-rest fashion
+    classes = np.arange(len(y_pred_probs[1]))
+    y_true_bin = label_binarize(y_true, classes=classes)
+    
+    # Compute ROC curve and ROC area for each class
+    n_classes = y_true_bin.shape[1]
+    for i in range(n_classes):
+        fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
+        roc_auc = auc(fpr, tpr)
+        
+        # Plot
+        ax.plot(fpr, tpr, lw=2, label=f'ROC curve of class {i} (area = {roc_auc:.2f})')
+
+
 #%%
 # main
 datasets = ['meld', 'emowoz', 'emocx']
@@ -190,7 +252,7 @@ emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disg
 'emocx':["others", "happy", "sad" , "angry"]}
 methods = ['zero', 'first','logits', 'ptrue']
 method = methods[2]
-
+fig, ax = plt.subplots()
 for model_name in models:
     for dataset_name in datasets:
         emotion2idx = {v:k for k,v in enumerate (emotion_labels[dataset_name])}
@@ -199,7 +261,7 @@ for model_name in models:
         path = f"{outputs_path}{dataset_name}/{method}/{model_name}"
         # if pass is not available continue to the next dataset
         try:
-            print (f"Model: {model_name} , Dataset: {dataset_name} , Method: {method}")
+            print (path)
             raw_dataset = load_from_disk(path)
         except:
             print(f"pass: {path} not available")
@@ -211,29 +273,28 @@ for model_name in models:
         if method == "zero":
                 continue
         elif method == "first":
-    #ece = get_ece_score(y_true, y_pred, confidence)
+                ece = get_ece_score(y_true, y_pred, confidence)
                 plot_calibration_diagram(y_true, y_pred, confidence)
         elif method == "logits":
-            
-            brier_score = get_brier_score(y_true, softmax_preds)
-            print(f"brier_score: {brier_score}")
-        print(f"f-scores: {f_scores}")
-#print(ece)
-        plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
+            roc_auc = roc_auc_score(y_true, softmax_preds, multi_class="ovr", average="weighted")
+            plot_roc_curve(y_true, softmax_preds,  ax)
 
+            brier_score = get_brier_score(y_true, softmax_preds)
+            ece = get_ece_softmax(y_true, softmax_preds)
+            print(f"Weighted AUC-ROC score: {roc_auc}")
+            print(f"brier_score: {brier_score}")
+            print(f"ece: {ece}")
+            
+
+        print(f"f-scores: {f_scores}")
+        plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
+ax.legend(loc='lower right')
+plt.show()
 
 # 
 
 
 
 # %%
-logit_test_dataset = load_from_disk(f"{outputs_path}meld/logits/Llama-13B")
-# %%
-logit_test_dataset['train'][:2]
 
-#%%
-
-# %%
-
-get_brier_score(y_true, y_pred)
 # %%
