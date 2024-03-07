@@ -1,9 +1,12 @@
 def template_emowoz(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
     if mode == "P(True)":
         prompt = emowoz_ptrue(context, query,tokenizer, emotion_label )
+    elif mode == "logit-based":
+        prompt = emowoz_logit(context, query,tokenizer, emotion_label )
     elif mode == 'verbalized':
         prompt = emowoz_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
     return prompt
+
 
 
 
@@ -165,6 +168,76 @@ Output JSON string:
     messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
     prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
 
+    return prompt
+def emowoz_logit(context, query, tokenizer,emotion_label):
+    system_prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and categorize the emotional state of 
+    the query utterance into just one of the following emotion lables: 
+    
+        neutral: A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        disappointed: A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        dissatisfied: A state of discontentment or unhappiness or sadness with an outcome, often when expectations are not met.
+
+        apologetic: A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        abusive: An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        excited: A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        satisfie: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
+
+If the query utterance does not carry any clear emotion, the output is: neutral
+
+If you are uncertain among two or more emotions, you should always choose the most accurate one.
+
+You always will respond with the most accurate emotional state of the query utterance. 
+
+Your always respond with just the most accurate emotion lable, regaring the context, without any explanations or notes on the output. 
+
+
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+####
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
+
+        
+Output string: neutral
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+    context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
+
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
+
+        
+Output string: satisfied
+####"""
+
+    user_prompt=f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie, without any explanations or notes. 
+    If you are uncertain among two or more emotions, you should always choose the most accurate one.
+    
+    what is your prediction for the following query utterance?
+ 
+    context: {context} 
+
+    query utterance: {query}
+
+    
+Output string:
+""" 
+    messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
     return prompt
 
 def emowoz_ptrue(context, query, tokenizer,emotion_label):
