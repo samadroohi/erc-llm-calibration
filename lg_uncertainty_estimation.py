@@ -214,7 +214,7 @@ def extract_lable_confidence(output_str):
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, emotion_tokens_dict, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "first":
-        num_new_tokens = 40
+        num_new_tokens = 25
     else:
         num_new_tokens = 1
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
@@ -256,10 +256,10 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
 
-            #if i %100 == 1:
+            if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-            print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
+                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
                       outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
             torch.cuda.empty_cache()
 
@@ -498,7 +498,7 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
-mode = modes[1]
+mode = modes[0]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
@@ -521,7 +521,7 @@ for dataset_name in [datasets[dataset_index]]:
     splits = ['train', 'validation', 'test']
     try:
         for split in splits:
-            print(f"************Started {split} for dataset {dataset_name} model: {model_name} mode: {mode} **********") 
+            print(f"************Started {split} for dataset {dataset_name} model: {model_name} mode: {mode} stage: {stage_of_verbalization}**********") 
             outputs = generate_responses(processed_data[split],
                                          split,model,tokenizer, device,
                                            mode, dataset_name, model_template,
