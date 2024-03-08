@@ -32,14 +32,15 @@ def get_accuracy_scores( y_true,y_pred):
     f_scores['accuracy'] = accuracy
     return f_scores
 #%%
-def plot_confusion_matrix(y_true, y_pred, labels):
-    
+def plot_confusion_matrix(y_true, y_pred, labels, model_name, dataset_name, ax):
+
+    print("labels: ", labels)
     cm = confusion_matrix(y_true, y_pred)
-    cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-    plt.figure(figsize=(10, 10))
-    sns.heatmap(cm, annot=True, fmt=".2f", cmap='Blues', xticklabels=labels, yticklabels=labels)
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label')
+    cm_normalized = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+    sns.heatmap(cm_normalized, annot=True, fmt=".2f", cmap="Blues", xticklabels=labels, yticklabels=labels, ax=ax)
+    ax.set_xlabel('Predicted label')
+    ax.set_ylabel('True label')
+    ax.set_title(f'{model_name}\n{dataset_name}')
 
 
 #%%
@@ -224,20 +225,27 @@ def plot_calibration_diagram(y_true, y_pred, confidence):
 
 #%%
 
-
-def plot_roc_curve(y_true, y_pred_probs,  ax):
-    # Binarize the output labels in one-vs-rest fashion
-    classes = np.arange(len(y_pred_probs[1]))
+def plot_micro_averaged_roc(y_true, y_scores, model_label, ax):
+    # Ensure y_true is binarized for all classes
+    classes = np.arange(y_scores.shape[1])  # Assuming y_scores.shape[1] is the number of classes
     y_true_bin = label_binarize(y_true, classes=classes)
     
-    # Compute ROC curve and ROC area for each class
-    n_classes = y_true_bin.shape[1]
-    for i in range(n_classes):
-        fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_pred_probs[:, i])
-        roc_auc = auc(fpr, tpr)
-        
-        # Plot
-        ax.plot(fpr, tpr, lw=2, label=f'ROC curve of class {i} (area = {roc_auc:.2f})')
+    # Compute ROC curve and ROC area for the micro-average of all classes
+    fpr, tpr, _ = roc_curve(y_true_bin.ravel(), y_scores.ravel())
+    roc_auc = roc_auc_score(y_true_bin, y_scores, average="micro")
+    
+    # Plot the micro-averaged ROC curve
+    ax.plot(fpr, tpr, label=f'{model_label} (micro-average ROC area = {roc_auc:.2f})', lw=2)
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('Micro-Averaged ROC Curve')
+    ax.legend(loc='lower right')
+    ax.plot([0, 1], [0, 1], 'k--', lw=2)
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.grid(True)
+
+
 
 
 #%%
@@ -252,10 +260,23 @@ emotion_labels ={'meld': ["neutral", "surprise", "fear", "sadness", "joy", "disg
 'emocx':["others", "happy", "sad" , "angry"]}
 methods = ['zero', 'first','logits', 'ptrue']
 method = methods[2]
-fig, ax = plt.subplots()
+# define a fig with title 
+fig1, ax1 = plt.subplots(1, 1, figsize=(15, 15))  # Adjust figsize as needed
+fig1.suptitle('Micro-averaged ROC Curves', fontsize=16)
+
+# define a fig with title
+#fig2, axs = plt.subplots(n_models, n_datasets, figsize=(n_models * 15, n_datasets * 15))  # Adjust figsize as needed
+
+
+n_models = len(models)
+n_datasets = len(datasets)
+
+fig2, ax2 = plt.subplots(n_models, n_datasets, figsize=(n_models * 15, n_datasets * 15))  # Adjust figsize as needed
+fig2.suptitle('Confusion Matrices', fontsize=16)
 for model_name in models:
     for dataset_name in datasets:
         emotion2idx = {v:k for k,v in enumerate (emotion_labels[dataset_name])}
+        emotion_classes = emotion2idx.keys()
         print(f"*************dataset: {dataset_name} ,  model: {model_name}, method: {method} ************* ")
         outputs_path = data_folder
         path = f"{outputs_path}{dataset_name}/{method}/{model_name}"
@@ -270,14 +291,17 @@ for model_name in models:
         cleaned_dataset = datase_cleaning(raw_dataset,method, emotion2idx)
         y_true, y_pred, softmax_preds,confidence = get_combined_data(cleaned_dataset, method)
         f_scores = get_accuracy_scores(y_true, y_pred)
-        if method == "zero":
+        plot_confusion_matrix(y_true, y_pred, emotion_classes, model_name, dataset_name, ax2[models.index(model_name), datasets.index(dataset_name)])
+        
+        if method == "first":
                 continue
         elif method == "first":
                 ece = get_ece_score(y_true, y_pred, confidence)
+                print(f"ece: {ece}")
                 plot_calibration_diagram(y_true, y_pred, confidence)
         elif method == "logits":
             roc_auc = roc_auc_score(y_true, softmax_preds, multi_class="ovr", average="weighted")
-            plot_roc_curve(y_true, softmax_preds,  ax)
+            plot_micro_averaged_roc(y_true, softmax_preds,path, ax1)
 
             brier_score = get_brier_score(y_true, softmax_preds)
             ece = get_ece_softmax(y_true, softmax_preds)
@@ -286,15 +310,22 @@ for model_name in models:
             print(f"ece: {ece}")
             
 
+            
+
         print(f"f-scores: {f_scores}")
-        plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name])
-ax.legend(loc='lower right')
 plt.show()
+        #plot_confusion_matrix(y_true, y_pred,emotion_labels[dataset_name],path, ax2)
+#plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.15), ncol=2)
+
+#plt.savefig('confusion_matrices.pdf', bbox_inches='tight')
 
 # 
 
 
 
 # %%
+
+# %%
+
 
 # %%
