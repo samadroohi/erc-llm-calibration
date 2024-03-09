@@ -472,7 +472,7 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld','emowoz', 'emocx', 'dailydialog']
-dataset_index = 2
+dataset_index = 1
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_index =1
@@ -498,7 +498,7 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
-mode = modes[0]
+mode = modes[1]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
