@@ -154,7 +154,6 @@ def get_transition_scores( outputs_gen, tokens_dict):
         class_scores += [outputs_gen.scores[0][0][token]]
         softmax_scores = torch.softmax(torch.tensor(class_scores), dim=0).detach().cpu().numpy()
     predicted_label = list(tokens_dict.keys())[np.argmax(softmax_scores)]
-
     return softmax_scores, predicted_label
 
 def get_model_scores(generated_output, model, tokenizer,tokens_dict, num_new_tokens):
@@ -313,30 +312,27 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
         outputs['ptrue_probs']=[]
 
         for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
-            success = False
-            while not success:
-                inputs_zero = tokenizer(llm_prompt,
-                            return_tensors="pt")
-                outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens,  pad_token_id=tokenizer.eos_token_id)
-                input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
-                response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
-                softmax_transition, prediction_transition = get_transition_scores(outputs_zero, tokens_dict)
-                if response == prediction_transition:
-                    success = True
-                    outputs['context'].append(prompts_dataset['context'][i])
-                    outputs['query'].append(prompts_dataset['query'][i])
-                    outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
-                    outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
-                    outputs['emotion_inserted'].append(inserted_emotion[i])
-                    outputs['prediction_truthfulness'].append(prediction_transition)
-                    outputs['ptrue_probs'].append(softmax_transition)
+            inputs_zero = tokenizer(llm_prompt,
+                        return_tensors="pt")
+            outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens,  pad_token_id=tokenizer.eos_token_id)
+            input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
+            response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
+            softmax_transition, prediction_transition = get_transition_scores(outputs_zero, tokens_dict)
+            if response == prediction_transition:
+                outputs['context'].append(prompts_dataset['context'][i])
+                outputs['query'].append(prompts_dataset['query'][i])
+                outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
+                outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
+                outputs['emotion_inserted'].append(inserted_emotion[i])
+                outputs['prediction_truthfulness'].append(prediction_transition)
+                outputs['ptrue_probs'].append(softmax_transition)
 
                 #if i %100 == 1:
                 #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
                 #send_slack_notification(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC", error_flag)
-                    print( "Query: " , prompts_dataset['query'][i], ",   ground truth: ", prompts_dataset['ground_truth'][i], ", emotion inserted:", inserted_emotion[i], ", prediction_truthfulness:", prediction_transition,"response:", response,", ptrue_probs:", softmax_transition)
-                else:
-                    print(f"!!!!!response: {response}, dose not match prediction_transition: {prediction_transition}!!!!!")
+                print( "Query: " , prompts_dataset['query'][i], ",   ground truth: ", prompts_dataset['ground_truth'][i], ", emotion inserted:", inserted_emotion[i], ", prediction_truthfulness:", prediction_transition,"response:", response,", ptrue_probs:", softmax_transition)
+            else:
+                print(f"!!!!!response: {response}, dose not match prediction_transition: {prediction_transition}!!!!!")
 
     return outputs
     
@@ -505,7 +501,7 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
-mode = modes[2]
+mode = modes[1]
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
