@@ -1,5 +1,5 @@
 def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "P(True)":
+    if mode == "ptrue":
         prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = emocx_logit(context, query,tokenizer, emotion_label)

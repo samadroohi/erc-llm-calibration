@@ -2,7 +2,7 @@ B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
 def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "P(True)":
+    if mode == "ptrue":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = meld_logit(context, query,tokenizer, emotion_label)
@@ -142,7 +142,7 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 
     elif stage_of_verbalization == "second_stage":
-         # use data from P(True)
+         # use data from ptrue
         pass
 
     return prompt

@@ -1,5 +1,5 @@
 def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "P(True)":
+    if mode == "ptrue":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = meld_logit(context, query,tokenizer, emotion_label)
@@ -233,4 +233,100 @@ Output string:
     return prompt
 
 def meld_ptrue(context, query, tokenizer,emotion_label):
-    pass
+    system_prompt = f"""You are a helpful, respectful and honest emotion recognition in conversation assistant. 
+Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
+
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
+
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the give motional states list than the proposed label.
+
+    
+The potential emotional states list is as followings: 
+
+    neutral 
+    surprise 
+    fear
+    sadness 
+    joy 
+    disgust 
+    anger
+
+
+####
+Here's an example of how an emotion recognition assistant for conversation analysis should function:
+
+Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+            [The Interviewer]: You mustve had your hands full. [neutral]
+
+    Query utterance: [Chandler]: That I did. That I did. 
+
+
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
+    
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+    
+    The correct answer is: A
+
+    
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+---Input:
+
+    Context: [Monica]: You never knew she was a lesbian? [surprise]
+    [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+
+    Query utterance: [Monica]: I am sorry
+
+
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+
+    The correct answer is: B
+####"""
+
+    user_prompt=f"""Remember that you are a helpful, respectful and honest emotion recognition in conversation assistant and your task is to carefully analyze the context and query utterance of a conversation and determine if: 
+    
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
+
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the give motional states list than the proposed label.
+
+
+Here is a new conversation:
+ 
+    context: {context} 
+
+    query utterance: {query}
+
+Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+
+---Output:
+
+    The correct answer is:
+
+""" 
+    messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
+
+    return prompt

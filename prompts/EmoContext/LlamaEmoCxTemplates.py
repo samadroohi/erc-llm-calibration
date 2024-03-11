@@ -2,7 +2,7 @@ B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
 def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "P(True)":
+    if mode == "ptrue":
         prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = emocx_logit(context, query,tokenizer, emotion_label)
@@ -144,7 +144,7 @@ What is your prediction and confidence on that prediction for the following quer
 
 
     elif stage_of_verbalization == "second_stage":
-         # use data from P(True)
+         # use data from ptrue
         pass
 
     return prompt
@@ -217,19 +217,22 @@ def emocx_ptrue(context, query, tokenizer,emotion_label):
     
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
-    triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
+Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
 
-    A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "query utterance".
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
 
-    B: No, the emotional state of the interlocutor of the "query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
-
-    
-The potential emotional states list is as followings: "others", "happy", "sad" , "angry"
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label than the proposed label.
 
     
+The potential emotional states list is as followings:
+    
+        others
+        happy
+        sad
+        angry
+
+#### 
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
-
 
 ---Input:
 
@@ -239,7 +242,7 @@ Here's an example of how an emotion recognition assistant for conversation analy
     query utterance: [speaker1]:  What's ur name? 
 
 
-Question: Given the context and considering the potential emotion labels, is the proposed label ```others``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the emotions list [others, happy, sad, angry], would ```others``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -263,7 +266,7 @@ Here is another example of how an emotion recognition in conversation assistant 
     query utterance: [Speaker1]: U little disgusting bitch
 
 
-Question: Given the context and considering the potential emotion labels, is the proposed label ```happy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the emotions list [others, happy, sad, angry], would ```happy``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -274,19 +277,20 @@ Question: Given the context and considering the potential emotion labels, is the
     
 ---Output:
 
-    The correct answer is: No
+    The correct answer is: B
 
-""" + E_SYS+ f""" Here is a new conversation:
+####""" + E_SYS+ f""" Remember that you are a helpful, respectful and honest emotion recognition in conversation assistant and your task is to carefully analyze the context and query utterance of a conversation and determine if: 
+  
+
+For the  following conversation:
 
 ---Input:
 
-    context: {context}
+    Context: {context}
         
-    query utterance: {query} 
+    Query utterance: {query} 
 
-
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```{emotion_label}``` the most accurate label to describe hte emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the emotions list [others, happy, sad, angry], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -294,67 +298,8 @@ Question: Given the context and considering the potential emotion labels, is the
 
     B: No
 
-Remember that the potential emotion labels are: "others", "happy", "sad" , "angry"
 
 ---Output:
-
-    The answer is:
  
- """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
+ """ + E_INST +" The correct answer is: "
     return prompt
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,5 +1,5 @@
 def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "P(True)":
+    if mode == "ptrue":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = meld_logit(context, query,tokenizer, emotion_label)
