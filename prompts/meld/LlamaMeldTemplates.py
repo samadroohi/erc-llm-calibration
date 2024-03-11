@@ -214,16 +214,26 @@ Your task is to carefully analyze the context and query utterance of a conversat
 
     A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
 
-    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the give motional states list than the proposed label.
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label than the proposed label.
 
     
-The potential emotional states list is as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+The potential emotional states list is as followings:
+
+neutral 
+surprise 
+fear
+sadness 
+joy 
+disgust 
+anger
 
     
-Here's an example of how an emotion recognition assistant for conversation analysis should function:
-
 
 ####
+Here's an example of how an emotion recognition assistant for conversation analysis should function:
+
+---Input:
+
     Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
             [The Interviewer]: You mustve had your hands full. [neutral]
 
@@ -231,7 +241,7 @@ Here's an example of how an emotion recognition assistant for conversation analy
 
 
 Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
-    
+
     A: Yes
 
     or
@@ -268,14 +278,20 @@ Considering the provided context and the emotions list ['neutral', 'surprise', '
     The correct answer is: B
 ####
 
-""" + E_SYS+ f""" Here is a new conversation:
+""" + E_SYS+ f""" Remember that you are a helpful, respectful and honest emotion recognition in conversation assistant and your task is to carefully analyze the context and query utterance of a conversation and determine if: 
+    
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
+
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the give motional states list than the proposed label.
+
+
+Here is a new conversation:
 
 ---Input:
 
     Context: {context}
         
     Query utterance: {query} 
-
 
 Considering the provided context and the emotions list ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
 
@@ -288,7 +304,7 @@ Considering the provided context and the emotions list ['neutral', 'surprise', '
 
 ---Output:
  
- """ + E_INST +" The correct answer is:"
+ """ + E_INST +"The correct answer is: "
     return prompt
 
 

@@ -306,8 +306,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
         prompts_dataset = prepare_prompt(processed_data, dataset_name,mode,
                                             model_template,
                                          tokenizer=tokenizer, 
-                                         inserted_emotion = inserted_emotion 
-                                         )
+                                         inserted_emotion = inserted_emotion )
         outputs['emotion_inserted']=[]
         outputs['prediction_truthfulness']=[] #A:True B:False
         outputs['ptrue_probs']=[]
@@ -319,19 +318,22 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
             softmax_transition, prediction_transition = get_transition_scores(outputs_zero, tokens_dict)
-            outputs['context'].append(prompts_dataset['context'][i])
-            outputs['query'].append(prompts_dataset['query'][i])
-            outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
-            outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
-            outputs['emotion_inserted'].append(inserted_emotion[i])
-            outputs['prediction_truthfulness'].append(prediction_transition)
-            outputs['ptrue_probs'].append(softmax_transition)
+            if response == prediction_transition:
+                outputs['context'].append(prompts_dataset['context'][i])
+                outputs['query'].append(prompts_dataset['query'][i])
+                outputs['ground_truth'].append(prompts_dataset['ground_truth'][i])
+                outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
+                outputs['emotion_inserted'].append(inserted_emotion[i])
+                outputs['prediction_truthfulness'].append(prediction_transition)
+                outputs['ptrue_probs'].append(softmax_transition)
 
-            if i %100 == 1:
+                #if i %100 == 1:
                 #print(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC ")
                 #send_slack_notification(f"Finished {i} out of {len(processed_data['context'])} for the split {split} for UERC", error_flag)
+                print( "Query: " , prompts_dataset['query'][i], ",   ground truth: ", prompts_dataset['ground_truth'][i], ", emotion inserted:", inserted_emotion[i], ", prediction_truthfulness:", prediction_transition,"response:", response,", ptrue_probs:", softmax_transition)
+            else:
+                print(f"!!!!!response: {response}, dose not match prediction_transition: {prediction_transition}!!!!!")
 
-                print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", emotion inserted:", outputs['emotion_inserted'][i], ", prediction_truthfulness:", outputs['prediction_truthfulness'][i], ", ptrue_probs:", outputs['ptrue_probs'][i])
     return outputs
     
             
@@ -378,7 +380,7 @@ def prepare_data(dataset_name, context_length, mode, assess_type, model_folder):
 
 
         elif mode == "P(True)":
-            dataset_dict = load_from_disk(f"/home/samad/Desktop/ACII/data/{dataset_name}/first/{model_folder}")
+            dataset_dict = load_from_disk(f"ACII/data/{dataset_name}/first/{model_folder}")
             if assess_type == "self-assessment":
                 features = ['context', 'query','ground_truth', 'prediction']
             elif assess_type == "random-assessment":
@@ -403,7 +405,15 @@ def prepare_data(dataset_name, context_length, mode, assess_type, model_folder):
             processed_data['test'] = extract_context_emowoz(dataset['test'],context_length, idx2emotion)
             processed_data['validation'] = extract_context_emowoz(dataset['validation'],context_length, idx2emotion)
         elif mode == "P(True)":
-            pass
+            dataset_dict = load_from_disk(f"ACII/data/{dataset_name}/first/{model_folder}")
+            if assess_type == "self-assessment":
+                features = ['context', 'query','ground_truth', 'prediction']
+            elif assess_type == "random-assessment":
+                features = ['context', 'query','ground_truth']
+            for split in ['train', 'validation', 'test']:
+                processed_data[split] = dataset_dict[split].to_pandas()
+                processed_data[split] = processed_data[split].drop(columns=[col for col in processed_data[split].columns if col not in features])
+
 
     elif dataset_name =='dailydialog':
         dataset = load_dataset("daily_dialog")
@@ -462,12 +472,12 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld','emowoz', 'emocx', 'dailydialog']
-dataset_index = 0
+dataset_index = 1
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_folders =["Llama-7B", "Llama-13B", "Mistral-7B", "Zephyr-7B"]
 
-model_index =0
+model_index =1
 model_folder = model_folders[model_index]
 model_name = models[model_index]
 
@@ -491,7 +501,11 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
+<<<<<<< HEAD
 mode = modes[2]
+=======
+mode = modes[1]
+>>>>>>> e88484cae83c73425954b14b40d76509bc295dd7
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":

@@ -236,30 +236,45 @@ Output string: satisfied
 def emowoz_ptrue(context, query, tokenizer,emotion_label):
 
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
-Your task is to carefully analyze the context of a conversation to determine that if the proposed emotional state, delimited by 
-    triple backticks, accurately represents the emotional state of the interlocutor making the query utterance:
 
-    A: Yes, the emotional state suggested within the triple backticks accurately convey the emotional state of the interlocutor of the the "Query utterance".
+Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
 
-    B: No, the emotional state of the interlocutor of the "Query utterance" would be more precisely represented by a different label from the potential emotional states, rather than the proposed label within the triple backticks.
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
 
-    
-The potential emotional states list is as followings: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label than the proposed label.
 
     
+The potential emotional states list is as followings:
+
+        neutral: A state of being emotionally balanced, where an individual is not displaying a significant positive or negative emotional reaction. This state is often used as a baseline in emotional analysis.
+
+        disappointed: A feeling of sadness or displeasure caused by the non-fulfillment of one's hopes or expectations.
+
+        dissatisfied: A state of discontentment or unhappiness with an outcome, often when expectations are not met.
+
+        apologetic: A state expressing or showing regret or remorse for an action, typically for something that has caused inconvenience or harm to another.
+
+        abusive: An emotional state characterized by actions or words intended to harm or intimidate others. This can include verbal aggression, insults, or threats.
+
+        excited: A state of heightened emotional arousal, enthusiasm, or eagerness about something.
+
+        satisfie: A feeling of fulfillment or contentment with the outcomes or experiences, indicating that one's desires, expectations, or needs have been met.
+
+    
+####
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
-
 
 ---Input:
 
-    Context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
-            [The Interviewer]: You mustve had your hands full. [neutral]
+    context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
+                [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
+            
+    query utterance: 
+        [human]: I would prefer a moderately priced one.
 
-    Query utterance: [Chandler]: That I did. That I did. 
 
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```neutral``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
-
+Considering the context and the potential emotion labels [neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie], would ```neutral``` accurately describe the emotional state of the person speaking in the query utterance?
+    
     A: Yes
 
     or
@@ -276,13 +291,14 @@ Here is another example of how an emotion recognition in conversation assistant 
 
 ---Input:
 
-    Context: [Monica]: You never knew she was a lesbian? [surprise]
-    [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+     context:[human]: do you have a 2 star in the east ? [dissatisfied]
+            [agent]: We do. Express by Holiday Inn Cambridge. Would you like their number, or a reservation? [unlabled]
 
-    Query utterance: [Monica]: I am sorry
+    query utterance:
+        [human]: Can you reserve me a room for Friday for 4 people, 2 nights please?
 
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```joy``` the most accurate label to describe the emotional state of the interlocutor of the Query utterance?
+        
+Considering the provided context and the emotions list [neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie], would ```abusive``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -295,17 +311,18 @@ Question: Given the context and considering the potential emotion labels, is the
 
     The correct answer is: B
 
-""" + E_SYS+ f""" Here is a new conversation:
+    
+""" + E_SYS+ f""" Remember that you always response with either A or B, without any explanations or notes.
+Here is a new conversation:
+
 
 ---Input:
 
-    Context: {context}
+    context: {context}
         
-    Query utterance: {query} 
+    query utterance: {query} 
 
-
-
-Question: Given the context and considering the potential emotion labels, is the proposed label ```{emotion_label}``` the most accurate label to describe hte emotional state of the interlocutor of the Query utterance?
+Considering the provided context and the potenital emotion labels [neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -313,12 +330,9 @@ Question: Given the context and considering the potential emotion labels, is the
 
     B: No
 
-Remember that the potential emotion labels are: 'neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger'
 
 ---Output:
 
-    The answer is:
- 
- """ + E_INST +" Sure, I'd be happy to help! Based on the context and the query utterance, and considering the potential emotion label list, the correct answer is:"
+ """ + E_INST +"  The correct answer is:"
     return prompt
 
