@@ -501,11 +501,7 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "P(True)"]
-<<<<<<< HEAD
 mode = modes[2]
-=======
-mode = modes[1]
->>>>>>> e88484cae83c73425954b14b40d76509bc295dd7
 stages = ["zero", "first", "second"]
 stage_of_verbalization = None
 if mode == "verbalized":
