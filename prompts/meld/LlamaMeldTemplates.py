@@ -1,20 +1,86 @@
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
 
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage= None, exclude_label = None):
     if mode == "ptrue":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = meld_logit(context, query,tokenizer, emotion_label)
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage, exclude_label = exclude_label)
+    
     
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
-    if stage_of_verbalization  == "zero":
+def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None, exclude_label = None):
+    if stage_of_verbalization == 'conformal':
+        prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and for the given labels of emotion,  and to each given label assign level of confidence based on how likely it is that the query utterance conveys the specified emotion.
+    
+    Confidence is a floating point number between 0 and 1, where 0 indicates that you are completly uncertain about your prediction and 1 indicates that you are highly certain about that prediction.
+
+    Highest confidence belongs to the most likely emotion, and the sum of confidences for all confidence values should be exactly 1.0.
+
+    You always provide the output in a JSON format, with labels as keys and confidences as values, without any extra explanation.
+
+    The potential emotion labels are:
+    
+    neutral 
+    surprise 
+    fear 
+    sadness 
+    joy 
+    disgust 
+    anger
+
+####
+
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+
+    context: [Monica]: You never knew she was a lesbian? [surprise]
+            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    
+    query utterance: [Monica]: I am sorry
+
+    
+Output JSON string:
+
+    '{\n    "neutral": 0.1,\n    "surprise": 0.0,\n    "fear": 0.12,\n    "sadness": 0.75,\n    "joy": 0.0,\n    "disgust": 0.0,\n    "anger": 0.03\n}'
+
+
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+
+    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+        [The Interviewer]: You mustve had your hands full. [neutral]
+
+    query utterance: [Chandler]: That I did. That I did.
+
+Output JSON string:
+
+    '{\n    "neutral": 0.73,\n    "surprise": 0.06,\n    "fear": 0.04,\n    "sadness": 0.0,\n    "joy": 0.26,\n    "disgust": 0.0,\n    "anger": 0.0\n}'
+
+
+####""" + E_SYS+ f"""Remember that you always provide the output in a JSON format, with labels as keys and confidences as values, without any extra explanation.
+
+Remember that valid emotion labels are: neutral, surprise, fear, sadness, joy, disgust, anger.
+
+ Highest confidence belongs to the most likely emotion, and the sum of confidences for all confidence values should be exactly 1.0.
+
+ what is your confidence values for the following conversation?
+ 
+    context: {context} 
+
+    query utterance: {query}
+
+""" + E_INST+ "Output JSON string:\n" 
+
+    elif stage_of_verbalization  == "zero":
 
         prompt= "<s>" + B_INST +B_SYS+ """ You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
@@ -139,11 +205,74 @@ Remember that your confidence is an integer number between 0 and 100, indicatig 
 
 """ + E_INST+ "Output JSON string:" 
         
+    elif stage_of_verbalization == "second":
+        potential_labels = ['neutral', 'surprise', 'fear', 'sadness', 'joy', 'disgust', 'anger']
+        if exclude_label !='neutral' and exclude_label!=None:
+            potential_labels = [label for label in potential_labels if label != exclude_label ]
+        prompt= "<s>" + B_INST +B_SYS+ f""" You are helpful, respectful and honest emotion recognition in conversation assistant. 
+    You always will be given a potential labels of emotion, delimited by triple backticks, a context of conversation and a query utterance. Your task is to analyze the context of the given 
+    conversation and predict which label from the given potential list best conveys the emotional state of the query utterance. 
 
 
-    elif stage_of_verbalization == "second_stage":
-         # use data from ptrue
-        pass
+If the query utterance does not convey a clear emotion, you should choose [neutral]. 
+
+
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+####
+---Input:
+    
+    In the following conversation, considering the provided context and the emotions list ```['neutral', 'surprise', 'fear', 'sadness']```, which label best reflects the emotional state of the query utterance?
+    
+    context: [Monica]: You never knew she was a lesbian? [surprise]
+            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    
+    query utterance: [Monica]: I am sorry
+
+    
+---Output:
+
+    the correct label is: sadness
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+---Input:
+
+    In the following conversation, considering the provided context and the emotions list ```['neutral', 'surprise', 'fear', 'joy']```, which label best reflects the emotional state of the query utterance?
+    
+    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+        [The Interviewer]: You mustve had your hands full. [neutral]
+
+    query utterance: [Chandler]: That I did. That I did.
+
+    
+---Output:
+
+    The correct label is: neutral
+    
+    ####""" + E_SYS+ f"""
+
+    Remember that you are helpful, respectful and honest emotion recognition in conversation assistant.
+
+    Remember that your never response with a label that is not included in the following potential emotion labels list. 
+
+    In the following conversation, considering the context, which label from potential emotion list ```{potential_labels}``` best reflects the emotional state of the  query utterance.
+    
+---Input
+
+    context: {context} 
+
+    query utterance: {query}
+
+    potential emotion labels: ```{potential_labels}```
+
+
+---Output:
+
+""" + E_INST+ "\tThe correct label is: " 
+    
+
 
     return prompt
 

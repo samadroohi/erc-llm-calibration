@@ -109,9 +109,7 @@ You always provide the output in a JSON format, with your "prediction" and your 
 Here is an example of how an emotion recognition in conversation assistant should work: 
 
 ####
-Here is an example:
 
-    
     context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
                 [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
             

@@ -219,19 +219,22 @@ def emocx_ptrue(context, query, tokenizer,emotion_label):
     prompt= "<s>" + B_INST +B_SYS+ """ You are a helpful, respectful and honest emotion recognition in conversation assistant. 
 Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
 
-    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance:
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance
 
-    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label than the proposed label.
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the potential labels list than the proposed label
 
     
 The potential emotional states list is as followings:
     
-        others
-        happy
-        sad
-        angry
+    others
+    happy
+    sad
+    angry
 
-#### 
+Note that the label "others" is used when the query utterance either does not carries any emotion or the carried emotion is not happy, sad, or angry.        
+
+####
+ 
 Here's an example of how an emotion recognition assistant for conversation analysis should function:
 
 ---Input:
@@ -279,10 +282,13 @@ Considering the provided context and the emotions list [others, happy, sad, angr
 
     The correct answer is: B
 
-####""" + E_SYS+ f""" Remember that you are a helpful, respectful and honest emotion recognition in conversation assistant and your task is to carefully analyze the context and query utterance of a conversation and determine if: 
-  
+####""" + E_SYS+ f""" 
 
-For the  following conversation:
+Remember that as an honest assistant focused on emotion recognition in conversation, your role is to thoughtfully examine the context and specific utterance within a dialogue. Your objective is to accurately assess whether the identified emotional state of the speaker in the given utterance is A: correct or B: incorrect.
+
+Remember that the label "others" is used when the query utterance either does not convey any clear emotion or the emotion expressed does not fall into the categories of happy, sad, or angry.
+ 
+For the following conversation:
 
 ---Input:
 
@@ -290,7 +296,8 @@ For the  following conversation:
         
     Query utterance: {query} 
 
-Considering the provided context and the emotions list [others, happy, sad, angry], would ```{emotion_label}``` accurately describe the emotional state of the person speaking in the query utterance?
+
+Considering the provided context and the available emotion labels [others, happy, sad, angry], is ```{emotion_label}``` the most accurate label to describe emotional state of the person speaking in the query utterance?
 
     A: Yes
 
@@ -301,5 +308,5 @@ Considering the provided context and the emotions list [others, happy, sad, angr
 
 ---Output:
  
- """ + E_INST +" The correct answer is: "
+ """ + E_INST +"The correct answer is: "
     return prompt

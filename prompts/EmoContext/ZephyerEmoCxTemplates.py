@@ -1,5 +1,5 @@
 def template_emocx(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
-    if mode == "ptrue)":
+    if mode == "ptrue":
         prompt = emocx_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = emocx_logit(context, query,tokenizer, emotion_label)
@@ -157,10 +157,10 @@ def emocx_logit(context, query, tokenizer,emotion_label):
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
     
-    others 
-    happy 
-    sad 
-    angry
+        others 
+        happy 
+        sad 
+        angry
 
 
 You predict "others", only when the query utterance does not carry any emotion.
@@ -219,4 +219,101 @@ Output string:
     return prompt
     
 def emocx_ptrue(context, query, tokenizer,emotion_label):
-    pass
+    system_prompt = f"""You are a helpful, respectful and honest emotion recognition in conversation assistant. 
+Your task is to carefully analyze the context and query utterance of a conversation and determine if: 
+
+    A: The proposed emotional state, delimited by triple backticks, can accurately represents the emotional state of the interlocutor making the query utterance
+
+    B: No, the emotional state of the interlocutor making the query utterance can be more precisely represented using a different label from the potential labels list than the proposed label
+
+    
+The potential emotional states list is as followings:
+    
+    others
+    happy
+    sad
+    angry
+
+Note that the label "others" is used when the query utterance either does not carries any emotion or the carried emotion is not happy, sad, or angry.        
+
+####
+ 
+Here's an example of how an emotion recognition assistant for conversation analysis should function:
+
+---Input:
+
+    context: [Speaker1]: Don't worry  I'm girl , 
+            [Speake2]: hmm how do I know if you are
+    
+    query utterance: [speaker1]:  What's ur name? 
+
+
+Considering the provided context and the emotions list [others, happy, sad, angry], would ```others``` accurately describe the emotional state of the person speaking in the query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+    
+    The correct answer is: A
+
+    
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+---Input:
+
+    context: [Speaker1]: U r ridiculous
+            [Speaker2]: I might be ridiculous but I am telling the truth.
+
+    query utterance: [Speaker1]: U little disgusting bitch
+
+
+Considering the provided context and the emotions list [others, happy, sad, angry], would ```happy``` accurately describe the emotional state of the person speaking in the query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+    
+---Output:
+
+    The correct answer is: B
+
+####"""
+
+    user_prompt=f"""Remember that as an honest assistant focused on emotion recognition in conversation, your role is to thoughtfully examine the context and specific utterance within a dialogue. Your objective is to accurately assess whether the identified emotional state of the speaker in the given utterance is A: correct or B: incorrect.
+
+Remember that the label "others" is used when the query utterance either does not convey any clear emotion or the emotion expressed does not fall into the categories of happy, sad, or angry.
+ 
+For the following conversation:
+
+---Input:
+
+    Context: {context}
+        
+    Query utterance: {query} 
+
+
+Considering the provided context and the available emotion labels [others, happy, sad, angry], is ```{emotion_label}``` the most accurate label to describe emotional state of the person speaking in the query utterance?
+
+    A: Yes
+
+    or
+
+    B: No
+
+
+---Output:
+
+     The correct answer is: 
+""" 
+    messages = [{"role": "system",  "content": system_prompt}, {"role": "user", "content": user_prompt}]
+    prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True) 
+
+    return prompt

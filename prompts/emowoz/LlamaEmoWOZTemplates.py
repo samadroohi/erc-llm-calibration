@@ -111,8 +111,7 @@ You always provide the output in a JSON format, with your "prediction" and your 
 Here is an example of how an uncertainty-aware emotion recognition in conversation assistant should work:        
 
 ####
-Here is an examples:
-    
+
     context :   [human]: I was hoping you can help me find a place to dine. I'm looking for an italian restaurant in the west. [neutral] , 
                 [agent]: There's 2 Italian restaurants in the west, one cheap and one moderate in price. Which price range do you want?[unlabled]
             
@@ -145,14 +144,18 @@ Output JSON string:
     }
 
 
-####""" + E_SYS+ f"""Remember that you always provide your prediction (from the given potential emotion lables) and confidence using a JSON string fromat, without any extra explanation.
+####""" + E_SYS+ f"""Remember that you always respond with just the most accurate emotion
+        label from the list of emotion lables: neutral, disappointed, dissatisfied, apologetic, abusive, excited, satisfie, and your confidence in that prediction in a JSON format, without any explanations or notes. 
 
 Remember that your confidence is an integer number between 0 and 100, indicatig your certainty about your prediction.
+
+What is your prediction and confidence on that prediction for the following query utterance?
 
 
     context: {context} 
 
     query utterance: {query}
+
 
 """ + E_INST+ "Output JSON string:" 
 

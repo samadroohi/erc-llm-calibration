@@ -101,7 +101,11 @@ def prepare_prompt(input_df, dataset_name ,mode, model_template,tokenizer, inser
         if mode == "ptrue":
             prompt = template(context, query, mode,tokenizer, emotion_label=inserted_emotion[i])
         elif mode == "verbalized":
-            prompt = template(context, query, mode,tokenizer=tokenizer, stage_of_verbalization=stage_of_verbalization)
+            if stage_of_verbalization == "second" :
+                exclude_lbl = input_df['emotion_inserted'][i] if input_df['ptrue_probs'][i][0] < 0.5 else None
+                prompt = template(context, query, mode,tokenizer=tokenizer, stage = stage_of_verbalization,exclude_label = exclude_lbl)
+            else:
+                prompt = template(context, query, mode,tokenizer=tokenizer, stage=stage_of_verbalization)
         elif mode == "logit-based":
             prompt = template(context, query, mode,tokenizer=tokenizer)
 
@@ -210,13 +214,44 @@ def extract_lable_confidence(output_str):
         print(f"Output string: {output_str}")
 
     return (emotion, confidence)  
+#%%
+def extract_confidence_values_for_conformal(output):
+    """
+    Extracts confidence values from an output string that contains a JSON string.
+
+    Parameters:
+    - output (str): An output string that may contain a JSON string and additional text.
+
+    Returns:
+    - dict: A dictionary with emotion labels as keys and confidence levels as values.
+    """
+    # Use regex to find the JSON string within the output
+    match = re.search(r'\{[\s\S]*\}', output)
+    if match:
+        json_str = match.group(0)
+        #print(f"JSON string: {json_str}")
+        try:
+            # Parse the JSON string into a Python dictionary
+            data = json.loads(json_str)
+            print(f"data:{data}")
+            return data
+        except json.JSONDecodeError:
+            print("Error decoding JSON.")
+            #print(f"JSON string: {json_str}")
+            return None
+    else:
+        print("No JSON found in the output.")
+    return None
 
 #%%
 def generate_responses(processed_data, split,model,tokenizer,device, mode,  dataset_name, model_template, error_flag, tokens_dict, idx2emotion, assess_type=None, stage_of_verbalization=None):
     if stage_of_verbalization == "first":
         num_new_tokens = 25
+    elif stage_of_verbalization =="conformal":
+        num_new_tokens = 85
     else:
-        num_new_tokens = 1
+        num_new_tokens = 8
+
     outputs = {'context':[], 'query':[], 'ground_truth':[], 'prompt_for_finetune':[]}
   
     if mode == 'verbalized':
@@ -224,43 +259,77 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                                          model_template,
                                          tokenizer=tokenizer,
                                          stage_of_verbalization = stage_of_verbalization)
-        outputs['prediction']= []
-        outputs['confidence'] = []
+        outputs['prediction'] = []
+        outputs['old_prediction']= []
+        outputs['old_prediction_truth']= []
+        outputs['new_prediction']= []
+        outputs['ptrue_prob'] = []
+        outputs['softmax_pred'] = []
         for i, llm_prompt in enumerate(prompts_dataset['prompt_for_finetune']):
+            
             inputs_zero = tokenizer(llm_prompt,
                         return_tensors="pt").to(device)
             input_length = 1 if model.config.is_encoder_decoder else inputs_zero.input_ids.shape[1]
             outputs_zero = model.generate(**inputs_zero,return_dict_in_generate=True, output_scores=True, max_new_tokens=num_new_tokens, pad_token_id=tokenizer.eos_token_id)
             response = tokenizer.decode(outputs_zero.sequences[0][input_length:], skip_special_tokens=False)
-            #print(f"output sequence: {response}. ground truth: {prompts_dataset['emotion'][i]}")
-            if stage_of_verbalization == "zero":
+            #print(f"output sequence: {response}")
+            if stage_of_verbalization == "zero" :
                 output = extract_label(response)
             elif stage_of_verbalization == "first":
                 output = extract_lable_confidence(response) # This returns a tuple of (emotion, confidence)
-            else:
-                output = None # define a function to extract emotion and confidence from the output
+            elif stage_of_verbalization == "second":
+                softmax_transition, prediction_transition = get_transition_scores(outputs_zero, tokens_dict)
+            elif stage_of_verbalization == "conformal":
+                
+                output = extract_confidence_values_for_conformal(response)
+                if output != None:
+                    softmax_values = softmax_values = [output[emotion] if emotion in output.keys() else 0.0 for emotion in idx2emotion.values()]
+                else:
+                    softmax_values = None
+
 
             #print(f"output: {output}")
             outputs['context'].append(prompts_dataset['context'][i])
             outputs['query'].append(prompts_dataset['query'][i])
             if dataset_name == 'emowoz':
-                outputs['ground_truth'].append(idx2emotion[prompts_dataset['emotion'][i]+1])
+                outputs['ground_truth'].append(idx2emotion[prompts_dataset['ground_truth' if stage_of_verbalization =='second' else 'emotion'][i]+1])
             else:            
-                outputs['ground_truth'].append(prompts_dataset['emotion'][i])
+                outputs['ground_truth'].append(prompts_dataset['ground_truth' if stage_of_verbalization =='second' else 'emotion'][i])
             outputs['prompt_for_finetune'].append(prompts_dataset['prompt_for_finetune'][i])
-            
-            if stage_of_verbalization != "zero":
+
+                
+            if stage_of_verbalization == "first":
                 outputs['prediction'].append(output[0])
                 outputs['confidence'].append(output[1])
-            else:
-                outputs['prediction'].append(output)
                 outputs['confidence'].append(None)
+            elif stage_of_verbalization == "second":
+                outputs['old_prediction'].append(prompts_dataset['emotion_inserted'][i])
+                outputs['old_prediction_truth'].append(prompts_dataset['prediction_truthfulness'][i])
+                outputs['ptrue_prob'].append(prompts_dataset['ptrue_probs'][i])
+                outputs['new_prediction'].append(prediction_transition)
+                
+                outputs['softmax_new_pred'].append(softmax_transition)
 
-            if i %100 == 1:
+            elif stage_of_verbalization == "conformal":
+                outputs['softmax_pred'].append(softmax_values)
+                if softmax_values != None:
+                    outputs['prediction'].append(idx2emotion[np.argmax(softmax_values)])
+                else:
+                    outputs['prediction'].append(None)
+
+                
+
+            #if i %100 == 1:
             #print(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC ")
             #send_slack_notification(f"Finished {i} out of {len(proccessed_data['context'])} for the split {split} for UERC", error_flag)
-                print( "Query: " , outputs['query'][i], ",      ground truth: ", outputs['ground_truth'][i], ",     prediction: ", 
-                      outputs['prediction'][i], "   , confidence:",  outputs['confidence'][i])
+            print( "Query: " , outputs['query'][i], ",   ground truth: ", outputs['ground_truth'][i], ", prediction:", outputs['prediction'][i], 
+                  ", confidence:", outputs['confidence'][i] if stage_of_verbalization == "first" else None, 
+                  ",old_prediction:", outputs['old_prediction'][i] if stage_of_verbalization == "second" else None, 
+                  ", old_prediction_truth:", outputs['old_prediction_truth'][i] if stage_of_verbalization == "second" else None, 
+                  ", new_prediction:", outputs['new_prediction'][i] if stage_of_verbalization == "second" else None, ", ptrue_prob:", 
+                  outputs['ptrue_prob'][i] if stage_of_verbalization == "second" else None, 
+                  ",softmax_pred:", outputs['softmax_pred'][i] if stage_of_verbalization == "conformal" else None)
+            print("\n\n")
             torch.cuda.empty_cache()
 
        
@@ -334,7 +403,7 @@ def generate_responses(processed_data, split,model,tokenizer,device, mode,  data
                 print( "Query: " , prompts_dataset['query'][i], ",   ground truth: ", prompts_dataset['ground_truth'][i], ", emotion inserted:", inserted_emotion[i], ", prediction_truthfulness:", prediction_transition,"response:", response,", ptrue_probs:", softmax_transition)
             torch.cuda.empty_cache()
     return outputs
-    
+
             
 #%%    
 def send_slack_notification(message, error_flag):
@@ -361,14 +430,20 @@ def merge_datasets(data_path):
     merged_dataset.save_to_disk(f"{data_path}_all_splits")
     return f"Merged all splits into {data_path}"
 
-def prepare_data(dataset_name, context_length, mode, assess_type, model_folder):
+def prepare_data(dataset_name, context_length=None, mode=None, assess_type=None, model_folder=None,stage = None):
     if dataset_name =='meld':
         emotion2idx= {'neutral': 0,'surprise': 1, 'fear': 2, 'sadness': 3, 'joy': 4, 'disgust': 5, 'anger': 6}
         emotion_labels = emotion2idx.keys()
         idx2emotion = {k:v for k,v in enumerate (emotion_labels)}
         processed_data = {}
+        if mode == 'verbalized' and stage == "second":
+            dataset_dict = load_from_disk(f"ACII/data/{dataset_name}/ptrue/{model_folder}")
+            features = ['context', 'query','ground_truth', 'emotion_inserted', 'prediction_truthfulness', 'ptrue_probs']
+            for split in ['train', 'validation', 'test']:
+                processed_data[split] = dataset_dict[split].to_pandas()
+                processed_data[split] = processed_data[split].drop(columns=[col for col in processed_data[split].columns if col not in features])
 
-        if mode == "verbalized" or mode == "logit-based":
+        elif mode == "verbalized" or mode == "logit-based":
             datapath = {"train": "datasets/meld/train_sent_emo.csv", "validation": "datasets/meld/dev_sent_emo.csv", "test": "datasets/meld/test_sent_emo.csv"}
             datasets_df = load_ds(datapath)
             ds_grouped_dialogues = group_dialogues(datasets_df)
@@ -479,12 +554,12 @@ gc.collect()
 torch.cuda.empty_cache()
 _ = load_dotenv(find_dotenv())
 datasets = ['meld','emowoz', 'emocx', 'dailydialog']
-dataset_index = 1
+dataset_index = 0
  #Add 'emowoz' and 'dailydialog' to the list
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_folders =["Llama-7B", "Llama-13B", "Mistral-7B", "Zephyr-7B"]
 
-model_index =1
+model_index =0
 model_folder = model_folders[model_index]
 model_name = models[model_index]
 
@@ -494,13 +569,7 @@ model_templates = [[lmtemplate, lmtemplate, mmtemplate,zmtemplate],
 
 model_template = model_templates[dataset_index][model_index]
 
-#Load model
 
-model, tokenizer = model_settings(model_name) #,device_map
-
-dev0 = torch.device("cuda:0")
-dev1 = torch.device("cuda:1")
-device = dev1 if torch.cuda.device_count() > 1 else dev0
 emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"anger"],
                   ["neutral", "disappointed", "dissatisfied", "apologetic", "abusive", "excited", "satisfied"],
                   ["others", "happy", "sad" , "angry"]] #for meld, emowoz and dailydialog
@@ -508,26 +577,37 @@ emotion_labels = [["neutral","surprise", "fear", "sadness", "joy", "disgust" ,"a
 
 
 modes = ["verbalized", "logit-based", "ptrue"]
-mode = modes[2]
-stages = ["zero", "first", "second"]
-stage_of_verbalization = None
+mode = modes[0]
+stages = ["zero", "first", "second", "conformal"]
+stage_of_verbalization = stages[2]
 if mode == "verbalized":
-    stage_of_verbalization = stages[1] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
+    stage_of_verbalization = stages[3] #zero for prediction, first for prediction along with uncertainty, and second for confidence on a provided prediction
 assess_type=None
 if mode == "ptrue":
     assess_types = ["self-assessment", "random-assessment"] #  results from the verbalized prediction, random labels,
     assess_type = assess_types[0] #self-assessment is for computing ptrue on the results generated from the verbalization method
+#Load model
 
+model, tokenizer = model_settings(model_name) #,device_map
+
+dev0 = torch.device("cuda:0")
+dev1 = torch.device("cuda:1")
+device = dev1 if torch.cuda.device_count() > 1 else dev0
 #%%
 for dataset_name in [datasets[dataset_index]]:
     
     emotion_label_tokens_dict = {emotion: tokenizer.encode(emotion)[1] for emotion in emotion_labels[dataset_index]}
     p_true_tokens_dict = {"A": tokenizer.encode("A")[1], "B": tokenizer.encode("B")[1]}
-    label_tokens_dict = emotion_label_tokens_dict if mode == "logit-based" else p_true_tokens_dict
+    label_tokens_dict = emotion_label_tokens_dict if mode == "logit-based" or stage_of_verbalization=="second" else p_true_tokens_dict
     send_slack_notification( f"The progam started model: {model_name} mode: {mode}  dataset: {dataset_name} ", error_flag)
     context_length = 2   # the maximum number of utterances to be considered for the context
-    processed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, mode,assess_type,model_folder= model_folder)
+    if mode == "verbalized" and stage_of_verbalization == "second":
+        #load data from ptrue folder
+        processed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, mode=mode,model_folder= model_folder, stage=stage_of_verbalization)
+    else:
+        processed_data, emotion2idx, idx2emotion = prepare_data(dataset_name, context_length, mode,assess_type,model_folder= model_folder)
     new_datapath = f'data/ed_{mode}_{stage_of_verbalization}_{assess_type}_uncertainty_{dataset_name}_{model_name}'
+    
     #print(processed_data['train'].head(1))
     response = None
     splits = ['train', 'validation', 'test']
