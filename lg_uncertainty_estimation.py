@@ -559,7 +559,7 @@ dataset_index = 0
 models = ["meta-llama/Llama-2-7b-chat-hf","meta-llama/Llama-2-13b-chat-hf", "mistralai/Mistral-7B-Instruct-v0.2", "HuggingFaceH4/zephyr-7b-beta"]
 model_folders =["Llama-7B", "Llama-13B", "Mistral-7B", "Zephyr-7B"]
 
-model_index =0
+model_index =2
 model_folder = model_folders[model_index]
 model_name = models[model_index]
 

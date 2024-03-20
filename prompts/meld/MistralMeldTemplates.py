@@ -1,17 +1,82 @@
-def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage_of_verbalization = None):
+def template_meld(context, query, mode,tokenizer=None,emotion_label = None, stage= None, exclude_label = None):
     if mode == "ptrue":
         prompt = meld_ptrue(context, query,tokenizer, emotion_label )
     elif mode == "logit-based":
         prompt = meld_logit(context, query,tokenizer, emotion_label)
     elif mode == 'verbalized':
-        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage_of_verbalization)
+        prompt = meld_verbalized(context, query,tokenizer,  stage_of_verbalization = stage, exclude_label = exclude_label)
+    
     
     return prompt
 
 
 
-def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None):
-    if stage_of_verbalization  == "zero":
+def meld_verbalized(context, query, tokenizer, stage_of_verbalization = None, exclude_label = None):
+    if stage_of_verbalization == 'conformal':
+        prompt= """ You are helpful, respectful and honest uncertainty-aware emotion recognition in conversation assistant. 
+    Your task is to analyze the context of a conversation and for the given labels of emotion,  and to each given label assign level of confidence based on how likely it is that the query utterance conveys the specified emotion.
+    
+    Confidence is a floating point number between 0 and 1, where 0 indicates that you are completly uncertain about your prediction and 1 indicates that you are highly certain about that prediction.
+
+    Highest confidence belongs to the most likely emotion, and the sum of confidences for all confidence values should be exactly 1.0.
+
+    You always provide the output in a JSON format, with labels as keys and confidences as values, without any extra explanation.
+
+    The potential emotion labels are:
+    
+    neutral 
+    surprise 
+    fear 
+    sadness 
+    joy 
+    disgust 
+    anger
+
+    
+####
+    
+Here is an example of how an emotion recognition in conversation assistant should work:        
+
+
+    context: [Monica]: You never knew she was a lesbian? [surprise]
+            [Joey]: No!! Okay?! Why does everyone keep fixating on that? She didn't know, how should I know? [anger]
+    
+    query utterance: [Monica]: I am sorry
+
+    
+Output JSON string:
+
+    '{\n    "neutral": 0.1,\n    "surprise": 0.0,\n    "fear": 0.12,\n    "sadness": 0.75,\n    "joy": 0.0,\n    "disgust": 0.0,\n    "anger": 0.03\n}'
+
+
+Here is another example of how an emotion recognition in conversation assistant should work:
+
+
+    context: [Chandler]: also I was the point person on my companys transition from the KL-5 to GR-6 system. [neutral]
+        [The Interviewer]: You mustve had your hands full. [neutral]
+
+    query utterance: [Chandler]: That I did. That I did.
+
+Output JSON string:
+
+    '{\n    "neutral": 0.73,\n    "surprise": 0.06,\n    "fear": 0.04,\n    "sadness": 0.0,\n    "joy": 0.26,\n    "disgust": 0.0,\n    "anger": 0.0\n}'
+
+
+####""" + f"""\n<<<Remember that you always provide the output in a JSON format, with labels as keys and confidences as values, without any extra explanation.
+
+Remember that valid emotion labels are: neutral, surprise, fear, sadness, joy, disgust, anger.
+
+ Highest confidence belongs to the most likely emotion, and the sum of confidences for all confidence values should be exactly 1.0.
+
+ what is your confidence values for the following conversation?
+ 
+    context: {context} 
+
+    query utterance: {query}
+
+    Output JSON string:\n:>>>""" 
+            
+    elif stage_of_verbalization  == "zero":
         prompt = f"""You are helpful, respectful and honest emotion recognition in conversation assistant. 
     Your task is to analyze the context of a conversation and categorize the emotional state of 
     the query utterance into just one of the following emotion lables: 
