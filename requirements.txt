@@ -1,0 +1,12 @@
+accelerate==0.28.0
+bitsandbytes==0.43.0
+bitsandbytes-cuda112==0.26.0.post2
+datasets==2.18.0
+ipykernel==6.29.5
+pip-chill==1.0.3
+python-dotenv==1.0.1
+scikit-learn==1.5.2
+seaborn==0.13.2
+torchaudio==2.2.0+cu121
+torchvision==0.17.0+cu121
+transformers==4.38.2
