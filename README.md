@@ -71,4 +71,4 @@ SOFTWARE.
 
 ## Citation
 
-If you use this code in your research, please cite:
+Roohi, S., Skarbez, R., Nguyen, H. (2025). Beyond Factualism: A Study of LLM Calibration Through the Lens of Conversational Emotion Recognition. In: Gong, M., Song, Y., Koh, Y.S., Xiang, W., Wang, D. (eds) AI 2024: Advances in Artificial Intelligence. AI 2024. Lecture Notes in Computer Science(), vol 15442. Springer, Singapore. https://doi.org/10.1007/978-981-96-0348-0_15
